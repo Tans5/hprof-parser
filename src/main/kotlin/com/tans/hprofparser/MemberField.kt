@@ -2,5 +2,6 @@ package com.tans.hprofparser
 
 data class MemberField(
     val nameStringId: Long,
-    val type: Int
+    val type: Int,
+    val size: Int
 )

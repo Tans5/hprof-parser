@@ -13,6 +13,8 @@ private val BYTE_SIZE = PrimitiveType.BYTE.byteSize
 private val SHORT_SIZE = PrimitiveType.SHORT.byteSize
 private val INT_SIZE = PrimitiveType.INT.byteSize
 private val LONG_SIZE = PrimitiveType.LONG.byteSize
+private val FLOAT_SIZE = PrimitiveType.FLOAT.byteSize
+private val DOUBLE_SIZE = PrimitiveType.DOUBLE.byteSize
 
 private val BOOLEAN_TYPE = PrimitiveType.BOOLEAN.hprofType
 private val CHAR_TYPE = PrimitiveType.CHAR.hprofType
@@ -75,7 +77,7 @@ fun BufferedSource.readDouble(): Double {
 
 fun BufferedSource.readValue(type: Int, identifierByteSize: Int): ValueHolder {
     return when (type) {
-        PrimitiveType.REFERENCE_HPROF_TYPE -> ValueHolder.ReferenceHolder(readId(identifierByteSize))
+        PrimitiveType.REFERENCE_HPROF_TYPE -> ValueHolder.ReferenceHolder(readId(identifierByteSize), identifierByteSize)
         BOOLEAN_TYPE -> ValueHolder.BooleanHolder(readBoolean())
         CHAR_TYPE -> ValueHolder.CharHolder(readChar())
         FLOAT_TYPE -> ValueHolder.FloatHolder(readFloat())
@@ -97,7 +99,8 @@ fun BufferedSource.readConstField(identifierByteSize: Int): ConstField {
     )
     return ConstField(
         index = index,
-        value = value
+        value = value,
+        size = INT_SIZE + BYTE_SIZE + value.size
     )
 }
 
@@ -107,7 +110,8 @@ fun BufferedSource.readStaticField(identifierByteSize: Int): StaticField {
     val value = readValue(type = type, identifierByteSize = identifierByteSize)
     return StaticField(
         nameStringId = nameStringId,
-        value = value
+        value = value,
+        size = identifierByteSize + BYTE_SIZE + value.size
     )
 }
 
@@ -116,14 +120,16 @@ fun BufferedSource.readMemberField(identifierByteSize: Int): MemberField {
     val type = readUnsignedByte()
     return MemberField(
         nameStringId = id,
-        type = type
+        type = type,
+        size = identifierByteSize + BYTE_SIZE
     )
 }
 
 fun BufferedSource.readStringRecord(header: HprofHeader, bodyLength: Int): HprofRecord.StringRecord {
     return HprofRecord.StringRecord(
         resId = readId(header.identifierByteSize),
-        string = readUtf8((bodyLength - header.identifierByteSize).toLong())
+        string = readUtf8((bodyLength - header.identifierByteSize).toLong()),
+        bodyLength = bodyLength
     )
 }
 
@@ -139,14 +145,18 @@ fun BufferedSource.readLoadClassRecord(
         id = id,
         stackTraceSerialNumber = stackTraceSerialNumber,
         classNameStrId = classNameStrId,
-        className = stringsMap[classNameStrId]
+        className = stringsMap[classNameStrId],
+        bodyLength = INT_SIZE * 2 + header.identifierByteSize * 2
     )
 }
 
 fun BufferedSource.readRootUnknownRecord(
     header: HprofHeader
 ): HprofRecord.RootUnknownRecord {
-    return HprofRecord.RootUnknownRecord(id = readId(header.identifierByteSize))
+    return HprofRecord.RootUnknownRecord(
+        id = readId(header.identifierByteSize),
+        bodyLength = header.identifierByteSize
+    )
 }
 
 fun BufferedSource.readRootJniGlobalRecord(
@@ -154,7 +164,8 @@ fun BufferedSource.readRootJniGlobalRecord(
 ): HprofRecord.RootJniGlobalRecord {
     return HprofRecord.RootJniGlobalRecord(
         id = readId(header.identifierByteSize),
-        refId = readId(header.identifierByteSize)
+        refId = readId(header.identifierByteSize),
+        bodyLength = header.identifierByteSize * 2
     )
 }
 
@@ -164,7 +175,8 @@ fun BufferedSource.readRootJniLocalRecord(
     return HprofRecord.RootJniLocalRecord(
         id = readId(header.identifierByteSize),
         threadSerialNumber = readInt(),
-        frameNumber = readInt()
+        frameNumber = readInt(),
+        bodyLength = header.identifierByteSize + INT_SIZE * 2
     )
 }
 
@@ -174,7 +186,8 @@ fun BufferedSource.readRootJavaFrameRecord(
     return HprofRecord.RootJavaFrameRecord(
         id = readId(header.identifierByteSize),
         threadSerialNumber = readInt(),
-        frameNumber = readInt()
+        frameNumber = readInt(),
+        bodyLength = header.identifierByteSize + INT_SIZE * 2
     )
 }
 
@@ -183,7 +196,8 @@ fun BufferedSource.readRootNativeStackRecord(
 ): HprofRecord.RootNativeStackRecord {
     return HprofRecord.RootNativeStackRecord(
         id = readId(header.identifierByteSize),
-        threadSerialNumber = readInt()
+        threadSerialNumber = readInt(),
+        bodyLength = header.identifierByteSize + INT_SIZE
     )
 }
 
@@ -191,7 +205,8 @@ fun BufferedSource.readRootStickyClassRecord(
     header: HprofHeader
 ): HprofRecord.RootStickyClassRecord {
     return HprofRecord.RootStickyClassRecord(
-        id = readId(header.identifierByteSize)
+        id = readId(header.identifierByteSize),
+        bodyLength = header.identifierByteSize
     )
 }
 
@@ -200,7 +215,8 @@ fun BufferedSource.readRootThreadBlockRecord(
 ): HprofRecord.RootThreadBlockRecord {
     return HprofRecord.RootThreadBlockRecord(
         id = readId(header.identifierByteSize),
-        threadSerialNumber = readInt()
+        threadSerialNumber = readInt(),
+        bodyLength = header.identifierByteSize + INT_SIZE
     )
 }
 
@@ -208,7 +224,8 @@ fun BufferedSource.readRootMonitorUsedRecord(
     header: HprofHeader
 ): HprofRecord.RootMonitorUsedRecord {
     return HprofRecord.RootMonitorUsedRecord(
-        id = readId(header.identifierByteSize)
+        id = readId(header.identifierByteSize),
+        bodyLength = header.identifierByteSize
     )
 }
 
@@ -218,7 +235,8 @@ fun BufferedSource.readRootThreadObjectRecord(
     return HprofRecord.RootThreadObjectRecord(
         id = readId(header.identifierByteSize),
         threadSerialNumber = readInt(),
-        frameNumber = readInt()
+        frameNumber = readInt(),
+        bodyLength = header.identifierByteSize + INT_SIZE * 2
     )
 }
 
@@ -226,7 +244,8 @@ fun BufferedSource.readRootInternedStringRecord(
     header: HprofHeader
 ): HprofRecord.RootInternedStringRecord {
     return HprofRecord.RootInternedStringRecord(
-        id = readId(header.identifierByteSize)
+        id = readId(header.identifierByteSize),
+        bodyLength = header.identifierByteSize
     )
 }
 
@@ -234,7 +253,8 @@ fun BufferedSource.readRootFinalizingRecord(
     header: HprofHeader
 ): HprofRecord.RootFinalizingRecord {
     return HprofRecord.RootFinalizingRecord(
-        id = readId(header.identifierByteSize)
+        id = readId(header.identifierByteSize),
+        bodyLength = header.identifierByteSize
     )
 }
 
@@ -242,7 +262,8 @@ fun BufferedSource.readRootDebuggerRecord(
     header: HprofHeader
 ): HprofRecord.RootDebuggerRecord {
     return HprofRecord.RootDebuggerRecord(
-        id = readId(header.identifierByteSize)
+        id = readId(header.identifierByteSize),
+        bodyLength = header.identifierByteSize
     )
 }
 
@@ -250,7 +271,8 @@ fun BufferedSource.readRootReferenceCleanupRecord(
     header: HprofHeader
 ): HprofRecord.RootReferenceCleanupRecord {
     return HprofRecord.RootReferenceCleanupRecord(
-        id = readId(header.identifierByteSize)
+        id = readId(header.identifierByteSize),
+        bodyLength = header.identifierByteSize
     )
 }
 
@@ -258,7 +280,8 @@ fun BufferedSource.readRootVmInternalRecord(
     header: HprofHeader
 ): HprofRecord.RootVmInternalRecord {
     return HprofRecord.RootVmInternalRecord(
-        id = readId(header.identifierByteSize)
+        id = readId(header.identifierByteSize),
+        bodyLength = header.identifierByteSize
     )
 }
 
@@ -268,7 +291,8 @@ fun BufferedSource.readRootJniMonitorRecord(
     return HprofRecord.RootJniMonitorRecord(
         id = readId(header.identifierByteSize),
         threadSerialNumber = readInt(),
-        stackDepth = readInt()
+        stackDepth = readInt(),
+        bodyLength = header.identifierByteSize + INT_SIZE * 2
     )
 }
 
@@ -276,35 +300,48 @@ fun BufferedSource.readRootUnreachableRecord(
     header: HprofHeader
 ): HprofRecord.RootUnReachableRecord {
     return HprofRecord.RootUnReachableRecord(
-        id = readId(header.identifierByteSize)
+        id = readId(header.identifierByteSize),
+        bodyLength = header.identifierByteSize
     )
 }
 
 fun BufferedSource.readClassDumpRecord(
     header: HprofHeader
 ): HprofRecord.ClassDumpRecord {
+    var bodySize = 0
     val id = readId(header.identifierByteSize)
+    bodySize += INT_SIZE
     val stackTraceSerialNumber = readInt()
+    bodySize += INT_SIZE
     val superClassId = readId(header.identifierByteSize)
+    bodySize += header.identifierByteSize
     val classLoaderId = readId(header.identifierByteSize)
+    bodySize += header.identifierByteSize
     val signersId = readId(header.identifierByteSize)
+    bodySize += header.identifierByteSize
     val protectionDomainId = readId(header.identifierByteSize)
+    bodySize += header.identifierByteSize
     skip(2 * header.identifierByteSize.toLong())
+    bodySize += header.identifierByteSize * 2
     val instanceSize = readInt()
+    bodySize += INT_SIZE
     val constPoolSize = readUnsignedShort()
+    bodySize += SHORT_SIZE
     val constFields = ArrayList<ConstField>()
     repeat(constPoolSize) {
-        constFields.add(readConstField(header.identifierByteSize))
+        constFields.add(readConstField(header.identifierByteSize).apply { bodySize += size })
     }
     val staticFields = ArrayList<StaticField>()
     val staticFieldSize = readUnsignedShort()
+    bodySize += SHORT_SIZE
     repeat(staticFieldSize) {
-        staticFields.add(readStaticField(header.identifierByteSize))
+        staticFields.add(readStaticField(header.identifierByteSize).apply { bodySize += size })
     }
     val memberFields = ArrayList<MemberField>()
     val memberFieldSize = readUnsignedShort()
+    bodySize += SHORT_SIZE
     repeat(memberFieldSize) {
-        memberFields.add(readMemberField(header.identifierByteSize))
+        memberFields.add(readMemberField(header.identifierByteSize).apply { bodySize += size })
     }
     return HprofRecord.ClassDumpRecord(
         id = id,
@@ -316,7 +353,8 @@ fun BufferedSource.readClassDumpRecord(
         instanceSize = instanceSize,
         constFields = constFields,
         staticFields = staticFields,
-        memberFields = memberFields
+        memberFields = memberFields,
+        bodyLength = bodySize
     )
 }
 
@@ -332,7 +370,8 @@ fun BufferedSource.readInstanceDumpRecord(
         id = id,
         stackTraceSerialNumber = stackTraceSerialNumber,
         classId = classId,
-        fieldValue = fieldValue
+        fieldValue = fieldValue,
+        bodyLength = header.identifierByteSize * 2 + INT_SIZE * 2 + LONG_SIZE
     )
 }
 
@@ -349,22 +388,28 @@ fun BufferedSource.readObjectArrayDumpRecord(
         stackTraceSerialNumber = stackTraceSerialNumber,
         arrayLength = arrayLength,
         arrayClassId = arrayClassId,
-        elementIds = elementIds
+        elementIds = elementIds,
+        bodyLength = header.identifierByteSize * (2 + arrayLength) + INT_SIZE * 2
     )
 }
 
 fun BufferedSource.readPrimitiveArrayDumpRecord(
     header: HprofHeader
 ): HprofRecord {
+    var bodyLength: Int = 0
     val id = readId(header.identifierByteSize)
+    bodyLength += header.identifierByteSize
     val stackTraceSerialNumber = readInt()
+    bodyLength += INT_SIZE
     val arrayLength = readInt()
+    bodyLength += INT_SIZE
     val r: HprofRecord = when(val type = readUnsignedByte()) {
         PrimitiveType.BOOLEAN.hprofType -> {
             HprofRecord.BoolArrayRecord(
                 id = id,
                 stackTraceSerialNumber = stackTraceSerialNumber,
-                array = BooleanArray(arrayLength) { readByte().toInt() != 0 }
+                array = BooleanArray(arrayLength) { readByte().toInt() != 0 },
+                bodyLength = bodyLength + arrayLength * BOOLEAN_SIZE
             )
         }
 
@@ -372,7 +417,8 @@ fun BufferedSource.readPrimitiveArrayDumpRecord(
             HprofRecord.CharArrayRecord(
                 id = id,
                 stackTraceSerialNumber = stackTraceSerialNumber,
-                array = CharArray(arrayLength) { readChar() }
+                array = CharArray(arrayLength) { readChar() },
+                bodyLength = bodyLength + arrayLength * CHAR_SIZE
             )
         }
 
@@ -380,7 +426,8 @@ fun BufferedSource.readPrimitiveArrayDumpRecord(
             HprofRecord.FloatArrayRecord(
                 id = id,
                 stackTraceSerialNumber = stackTraceSerialNumber,
-                array = FloatArray(arrayLength) { readFloat() }
+                array = FloatArray(arrayLength) { readFloat() },
+                bodyLength = bodyLength + arrayLength * FLOAT_SIZE
             )
         }
 
@@ -388,7 +435,8 @@ fun BufferedSource.readPrimitiveArrayDumpRecord(
             HprofRecord.DoubleArrayRecord(
                 id = id,
                 stackTraceSerialNumber = stackTraceSerialNumber,
-                array = DoubleArray(arrayLength) { readDouble() }
+                array = DoubleArray(arrayLength) { readDouble() },
+                bodyLength = bodyLength + arrayLength * DOUBLE_SIZE
             )
         }
 
@@ -396,7 +444,8 @@ fun BufferedSource.readPrimitiveArrayDumpRecord(
             HprofRecord.ByteArrayRecord(
                 id = id,
                 stackTraceSerialNumber = stackTraceSerialNumber,
-                array = ByteArray(arrayLength) { readByte() }
+                array = ByteArray(arrayLength) { readByte() },
+                bodyLength = bodyLength + arrayLength * BYTE_SIZE
             )
         }
 
@@ -404,7 +453,8 @@ fun BufferedSource.readPrimitiveArrayDumpRecord(
             HprofRecord.ShortArrayRecord(
                 id = id,
                 stackTraceSerialNumber = stackTraceSerialNumber,
-                array = ShortArray(arrayLength) { readShort() }
+                array = ShortArray(arrayLength) { readShort() },
+                bodyLength = bodyLength + arrayLength * SHORT_SIZE
             )
         }
 
@@ -412,7 +462,8 @@ fun BufferedSource.readPrimitiveArrayDumpRecord(
             HprofRecord.IntArrayRecord(
                 id = id,
                 stackTraceSerialNumber = stackTraceSerialNumber,
-                array = IntArray(arrayLength) { readInt() }
+                array = IntArray(arrayLength) { readInt() },
+                bodyLength = bodyLength + arrayLength * INT_SIZE
             )
         }
 
@@ -420,7 +471,8 @@ fun BufferedSource.readPrimitiveArrayDumpRecord(
             HprofRecord.LongArrayRecord(
                 id = id,
                 stackTraceSerialNumber = stackTraceSerialNumber,
-                array = LongArray(arrayLength) { readLong() }
+                array = LongArray(arrayLength) { readLong() },
+                bodyLength = bodyLength + arrayLength * LONG_SIZE
             )
         }
 
@@ -436,7 +488,8 @@ fun BufferedSource.readHeapDumpInfoRecord(
 ): HprofRecord.HeapDumpInfoRecord {
     return HprofRecord.HeapDumpInfoRecord(
         heapId = readId(header.identifierByteSize),
-        stringId = readId(header.identifierByteSize)
+        stringId = readId(header.identifierByteSize),
+        bodyLength = header.identifierByteSize * 2
     )
 }
 
@@ -582,7 +635,8 @@ fun BufferedSource.readHeapDumpRecord(
                 }
             }
             return HprofRecord.HeapDumpRecord(
-                subRecords = subRecords
+                subRecords = subRecords,
+                bodyLength = bodyLength
             )
         }
     }
