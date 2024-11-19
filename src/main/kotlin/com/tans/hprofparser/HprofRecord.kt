@@ -1,9 +1,6 @@
 package com.tans.hprofparser
 
 import okio.BufferedSource
-import okio.buffer
-import okio.source
-import java.io.ByteArrayInputStream
 import java.io.IOException
 import kotlin.jvm.Throws
 
@@ -339,10 +336,7 @@ fun BufferedSource.parseRecords(header: HprofHeader): Map<Class<out HprofRecord>
              * - string body
              */
             HprofRecordTag.STRING_IN_UTF8 -> {
-                val sr = HprofRecord.StringRecord(
-                    resId = readId(header.identifierByteSize),
-                    string = readUtf8((bodyLength - header.identifierByteSize).toLong())
-                )
+                val sr = readStringRecord(header, bodyLength)
                 stringsMap[sr.resId] = sr
                 strings.add(sr)
             }
@@ -354,25 +348,13 @@ fun BufferedSource.parseRecords(header: HprofHeader): Map<Class<out HprofRecord>
              * - classNameStringId
              */
             HprofRecordTag.LOAD_CLASS -> {
-                val classSerialNumber = readInt()
-                val id = readId(header.identifierByteSize)
-                val stackTraceSerialNumber = readInt()
-                val classNameStrId = readId(header.identifierByteSize)
-                val r = HprofRecord.LoadClassRecord(
-                   classSerialNumber = classSerialNumber,
-                    id = id,
-                    stackTraceSerialNumber = stackTraceSerialNumber,
-                    classNameStrId = classNameStrId,
-                    className = stringsMap[classNameStrId]
-                )
+                val r = readLoadClassRecord(header, stringsMap)
                 loadClasses.add(r)
-                loadClassesMap[id] = r
+                loadClassesMap[r.id] = r
             }
 
             HprofRecordTag.ROOT_UNKNOWN -> {
-                val id = readId(header.identifierByteSize)
-                val r = HprofRecord.RootUnknownRecord(id = id)
-                rootUnknown.add(r)
+                rootUnknown.add(readRootUnknownRecord(header))
             }
 
             /**
@@ -380,11 +362,7 @@ fun BufferedSource.parseRecords(header: HprofHeader): Map<Class<out HprofRecord>
              * - refId
              */
             HprofRecordTag.ROOT_JNI_GLOBAL -> {
-                val r = HprofRecord.RootJniGlobalRecord(
-                    id = readId(header.identifierByteSize),
-                    refId = readId(header.identifierByteSize)
-                )
-                rootJniGlobal.add(r)
+                rootJniGlobal.add(readRootJniGlobalRecord(header))
             }
 
             /**
@@ -393,12 +371,7 @@ fun BufferedSource.parseRecords(header: HprofHeader): Map<Class<out HprofRecord>
              * - frameNumber(int)
              */
             HprofRecordTag.ROOT_JNI_LOCAL -> {
-                val r = HprofRecord.RootJniLocalRecord(
-                    id = readId(header.identifierByteSize),
-                    threadSerialNumber = readInt(),
-                    frameNumber = readInt()
-                )
-                rootJniLocal.add(r)
+                rootJniLocal.add(readRootJniLocalRecord(header))
             }
 
             /**
@@ -407,12 +380,7 @@ fun BufferedSource.parseRecords(header: HprofHeader): Map<Class<out HprofRecord>
              * - frameNumber(int)
              */
             HprofRecordTag.ROOT_JAVA_FRAME -> {
-                val r = HprofRecord.RootJavaFrameRecord(
-                    id = readId(header.identifierByteSize),
-                    threadSerialNumber = readInt(),
-                    frameNumber = readInt()
-                )
-                rootJavaFrame.add(r)
+                rootJavaFrame.add(readRootJavaFrameRecord(header))
             }
 
             /**
@@ -420,18 +388,11 @@ fun BufferedSource.parseRecords(header: HprofHeader): Map<Class<out HprofRecord>
              * - threadSerialNumber(int)
              */
             HprofRecordTag.ROOT_NATIVE_STACK -> {
-                val r = HprofRecord.RootNativeStackRecord(
-                    id = readId(header.identifierByteSize),
-                    threadSerialNumber = readInt()
-                )
-                rootNativeStack.add(r)
+                rootNativeStack.add(readRootNativeStackRecord(header))
             }
 
             HprofRecordTag.ROOT_STICKY_CLASS -> {
-                val r = HprofRecord.RootStickyClassRecord(
-                    id = readId(header.identifierByteSize)
-                )
-                rootStickyClass.add(r)
+                rootStickyClass.add(readRootStickyClassRecord(header))
             }
 
             /**
@@ -439,18 +400,11 @@ fun BufferedSource.parseRecords(header: HprofHeader): Map<Class<out HprofRecord>
              * - threadSerialNumber(int)
              */
             HprofRecordTag.ROOT_THREAD_BLOCK -> {
-                val r = HprofRecord.RootThreadBlockRecord(
-                    id = readId(header.identifierByteSize),
-                    threadSerialNumber = readInt()
-                )
-                rootThreadBlock.add(r)
+                rootThreadBlock.add(readRootThreadBlockRecord(header))
             }
 
             HprofRecordTag.ROOT_MONITOR_USED -> {
-                val r = HprofRecord.RootMonitorUsedRecord(
-                    id = readId(header.identifierByteSize)
-                )
-                rootMonitorUsed.add(r)
+                rootMonitorUsed.add(readRootMonitorUsedRecord(header))
             }
 
             /**
@@ -459,47 +413,27 @@ fun BufferedSource.parseRecords(header: HprofHeader): Map<Class<out HprofRecord>
              * - frameNumber(int)
              */
             HprofRecordTag.ROOT_THREAD_OBJECT -> {
-                val r = HprofRecord.RootThreadObjectRecord(
-                    id = readId(header.identifierByteSize),
-                    threadSerialNumber = readInt(),
-                    frameNumber = readInt()
-                )
-                rootThreadObject.add(r)
+                rootThreadObject.add(readRootThreadObjectRecord(header))
             }
 
             HprofRecordTag.ROOT_INTERNED_STRING -> {
-                val r = HprofRecord.RootInternedStringRecord(
-                    id = readId(header.identifierByteSize),
-                )
-                rootInternalStringRecord.add(r)
+                rootInternalStringRecord.add(readRootInternedStringRecord(header))
             }
 
             HprofRecordTag.ROOT_FINALIZING -> {
-                val r = HprofRecord.RootFinalizingRecord(
-                    id = readId(header.identifierByteSize)
-                )
-                rootFinalizing.add(r)
+                rootFinalizing.add(readRootFinalizingRecord(header))
             }
 
             HprofRecordTag.ROOT_DEBUGGER -> {
-                val r = HprofRecord.RootDebuggerRecord(
-                    id = readId(header.identifierByteSize)
-                )
-                rootDebugger.add(r)
+                rootDebugger.add(readRootDebuggerRecord(header))
             }
 
             HprofRecordTag.ROOT_REFERENCE_CLEANUP -> {
-                val r = HprofRecord.RootReferenceCleanupRecord(
-                    id = readId(header.identifierByteSize)
-                )
-                rootReferenceCleanup.add(r)
+                rootReferenceCleanup.add(readRootReferenceCleanupRecord(header))
             }
 
             HprofRecordTag.ROOT_VM_INTERNAL -> {
-                val r = HprofRecord.RootVmInternalRecord(
-                    id = readId(header.identifierByteSize)
-                )
-                rootVmInternal.add(r)
+                rootVmInternal.add(readRootVmInternalRecord(header))
             }
 
             /**
@@ -508,365 +442,15 @@ fun BufferedSource.parseRecords(header: HprofHeader): Map<Class<out HprofRecord>
              * - stackDepth(int)
              */
             HprofRecordTag.ROOT_JNI_MONITOR -> {
-                val r = HprofRecord.RootJniMonitorRecord(
-                    id = readId(header.identifierByteSize),
-                    threadSerialNumber = readInt(),
-                    stackDepth = readInt()
-                )
-                rootJniMonitor.add(r)
+                rootJniMonitor.add(readRootJniMonitorRecord(header))
             }
 
             HprofRecordTag.ROOT_UNREACHABLE -> {
-                val r = HprofRecord.RootUnReachableRecord(
-                    id = readId(header.identifierByteSize)
-                )
-                rootUnReachable.add(r)
+                rootUnReachable.add(readRootUnreachableRecord(header))
             }
 
             HprofRecordTag.HEAP_DUMP, HprofRecordTag.HEAP_DUMP_SEGMENT -> {
-                val body = readByteArray(bodyLength.toLong())
-                ByteArrayInputStream(body).source().buffer().use {
-                    val subRecords = ArrayList<HprofRecord>()
-                    while (!this.exhausted()) {
-                        val subTagInt = readUnsignedByte()
-                        val subTag = HprofRecordTag.entries.find { it.tag == subTagInt }
-                        if (subTag == null) {
-                            throw IOException("Unknown tag=$tagInt")
-                        }
-                        when (subTag) {
-                            HprofRecordTag.ROOT_UNKNOWN -> {
-                                val id = readId(header.identifierByteSize)
-                                val r = HprofRecord.RootUnknownRecord(id = id)
-                                subRecords.add(r)
-                            }
-                            HprofRecordTag.ROOT_JNI_GLOBAL -> {
-                                val r = HprofRecord.RootJniGlobalRecord(
-                                    id = readId(header.identifierByteSize),
-                                    refId = readId(header.identifierByteSize)
-                                )
-                                subRecords.add(r)
-                            }
-                            HprofRecordTag.ROOT_JNI_LOCAL -> {
-                                val r = HprofRecord.RootJniLocalRecord(
-                                    id = readId(header.identifierByteSize),
-                                    threadSerialNumber = readInt(),
-                                    frameNumber = readInt()
-                                )
-                                subRecords.add(r)
-                            }
-                            HprofRecordTag.ROOT_JAVA_FRAME -> {
-                                val r = HprofRecord.RootJavaFrameRecord(
-                                    id = readId(header.identifierByteSize),
-                                    threadSerialNumber = readInt(),
-                                    frameNumber = readInt()
-                                )
-                                subRecords.add(r)
-                            }
-                            HprofRecordTag.ROOT_NATIVE_STACK -> {
-                                val r = HprofRecord.RootNativeStackRecord(
-                                    id = readId(header.identifierByteSize),
-                                    threadSerialNumber = readInt()
-                                )
-                                subRecords.add(r)
-                            }
-
-                            HprofRecordTag.ROOT_STICKY_CLASS -> {
-                                val r = HprofRecord.RootStickyClassRecord(
-                                    id = readId(header.identifierByteSize)
-                                )
-                                subRecords.add(r)
-                            }
-
-                            HprofRecordTag.ROOT_THREAD_BLOCK -> {
-                                val r = HprofRecord.RootThreadBlockRecord(
-                                    id = readId(header.identifierByteSize),
-                                    threadSerialNumber = readInt()
-                                )
-                                subRecords.add(r)
-                            }
-
-                            HprofRecordTag.ROOT_MONITOR_USED -> {
-                                val r = HprofRecord.RootMonitorUsedRecord(
-                                    id = readId(header.identifierByteSize)
-                                )
-                                subRecords.add(r)
-                            }
-
-                            HprofRecordTag.ROOT_THREAD_OBJECT -> {
-                                val r = HprofRecord.RootThreadObjectRecord(
-                                    id = readId(header.identifierByteSize),
-                                    threadSerialNumber = readInt(),
-                                    frameNumber = readInt()
-                                )
-                                subRecords.add(r)
-                            }
-
-                            HprofRecordTag.ROOT_INTERNED_STRING -> {
-                                val r = HprofRecord.RootInternedStringRecord(
-                                    id = readId(header.identifierByteSize),
-                                )
-                                subRecords.add(r)
-                            }
-
-                            HprofRecordTag.ROOT_FINALIZING -> {
-                                val r = HprofRecord.RootFinalizingRecord(
-                                    id = readId(header.identifierByteSize)
-                                )
-                                subRecords.add(r)
-                            }
-
-                            HprofRecordTag.ROOT_DEBUGGER -> {
-                                val r = HprofRecord.RootDebuggerRecord(
-                                    id = readId(header.identifierByteSize)
-                                )
-                                subRecords.add(r)
-                            }
-
-                            HprofRecordTag.ROOT_REFERENCE_CLEANUP -> {
-                                val r = HprofRecord.RootReferenceCleanupRecord(
-                                    id = readId(header.identifierByteSize)
-                                )
-                                subRecords.add(r)
-                            }
-
-                            HprofRecordTag.ROOT_VM_INTERNAL -> {
-                                val r = HprofRecord.RootVmInternalRecord(
-                                    id = readId(header.identifierByteSize)
-                                )
-                                subRecords.add(r)
-                            }
-
-                            HprofRecordTag.ROOT_JNI_MONITOR -> {
-                                val r = HprofRecord.RootJniMonitorRecord(
-                                    id = readId(header.identifierByteSize),
-                                    threadSerialNumber = readInt(),
-                                    stackDepth = readInt()
-                                )
-                                subRecords.add(r)
-                            }
-
-                            HprofRecordTag.ROOT_UNREACHABLE -> {
-                                val r = HprofRecord.RootUnReachableRecord(
-                                    id = readId(header.identifierByteSize)
-                                )
-                                subRecords.add(r)
-                            }
-
-                            /**
-                             * - id
-                             * - stackTraceSerialNumber(int)
-                             * - superClassId
-                             * - classLoaderId
-                             * - signersId
-                             * - protectionDomainId
-                             * - skip 2 * identifierSize
-                             * - instanceSize(int) // in bytes
-                             * - constPoolCount(short)
-                             *    - index(short)
-                             *    - size(byte)
-                             *    - value
-                             * - staticFieldCount(short)
-                             *    - id
-                             *    - type(byte)
-                             *    - value
-                             * - memberFieldCount(short)
-                             *    - id
-                             *    - type(byte)
-                             */
-                            HprofRecordTag.CLASS_DUMP -> {
-                                val id = readId(header.identifierByteSize)
-                                val stackTraceSerialNumber = readInt()
-                                val superClassId = readId(header.identifierByteSize)
-                                val classLoaderId = readId(header.identifierByteSize)
-                                val signersId = readId(header.identifierByteSize)
-                                val protectionDomainId = readId(header.identifierByteSize)
-                                skip(2 * header.identifierByteSize.toLong())
-                                val instanceSize = readInt()
-                                val constPoolSize = readUnsignedShort()
-                                val constFields = ArrayList<ConstField>()
-                                repeat(constPoolSize) {
-                                    constFields.add(readConstField(header.identifierByteSize))
-                                }
-                                val staticFields = ArrayList<StaticField>()
-                                val staticFieldSize = readUnsignedShort()
-                                repeat(staticFieldSize) {
-                                    staticFields.add(readStaticField(header.identifierByteSize))
-                                }
-                                val memberFields = ArrayList<MemberField>()
-                                val memberFieldSize = readUnsignedShort()
-                                repeat(memberFieldSize) {
-                                    memberFields.add(readMemberField(header.identifierByteSize))
-                                }
-                                subRecords.add(HprofRecord.ClassDumpRecord(
-                                    id = id,
-                                    stackTraceSerialNumber = stackTraceSerialNumber,
-                                    superClassId = superClassId,
-                                    classLoaderId = classLoaderId,
-                                    signersId = signersId,
-                                    protectionDomainId = protectionDomainId,
-                                    instanceSize = instanceSize,
-                                    constFields = constFields,
-                                    staticFields = staticFields,
-                                    memberFields = memberFields
-                                ))
-                            }
-
-                            /**
-                             * - id
-                             * - stackTraceSerialNumber(int)
-                             * - classId
-                             * - fieldSize(int)
-                             * - fieldValue
-                             */
-                            HprofRecordTag.INSTANCE_DUMP -> {
-                                val id = readId(header.identifierByteSize)
-                                val stackTraceSerialNumber = readInt()
-                                val classId = readId(header.identifierByteSize)
-                                val byteSize = readInt()
-                                val fieldValue = readByteArray(byteSize.toLong())
-                                subRecords.add(
-                                    HprofRecord.InstanceDumpRecord(
-                                        id = id,
-                                        stackTraceSerialNumber = stackTraceSerialNumber,
-                                        classId = classId,
-                                        fieldValue = fieldValue
-                                    )
-                                )
-                            }
-
-                            /**
-                             * - id
-                             * - stackTraceSerialNumber(int)
-                             * - arrayLength(int)
-                             * - arrayClassId
-                             * - elementIds (count of arrayLength)
-                             */
-                            HprofRecordTag.OBJECT_ARRAY_DUMP -> {
-                                val id = readId(header.identifierByteSize)
-                                val stackTraceSerialNumber = readInt()
-                                val arrayLength = readInt()
-                                val arrayClassId = readId(header.identifierByteSize)
-                                val elementIds = LongArray(arrayLength) { readId(header.identifierByteSize) }
-                                subRecords.add(
-                                    HprofRecord.ObjectArrayRecord(
-                                        id = id,
-                                        stackTraceSerialNumber = stackTraceSerialNumber,
-                                        arrayLength = arrayLength,
-                                        arrayClassId = arrayClassId,
-                                        elementIds = elementIds
-                                    )
-                                )
-                            }
-
-                            /**
-                             * - id
-                             * - stackTraceSerialNumber(int)
-                             * - arrayLength(int)
-                             * - elementType(byte)
-                             * - elementValues
-                             */
-                            HprofRecordTag.PRIMITIVE_ARRAY_DUMP -> {
-                                val id = readId(header.identifierByteSize)
-                                val stackTraceSerialNumber = readInt()
-                                val arrayLength = readInt()
-                                val r: HprofRecord = when(val type = readUnsignedByte()) {
-                                    PrimitiveType.BOOLEAN.hprofType -> {
-                                        HprofRecord.BoolArrayRecord(
-                                            id = id,
-                                            stackTraceSerialNumber = stackTraceSerialNumber,
-                                            array = BooleanArray(arrayLength) { readByte().toInt() != 0 }
-                                        )
-                                    }
-
-                                    PrimitiveType.CHAR.hprofType -> {
-                                        HprofRecord.CharArrayRecord(
-                                            id = id,
-                                            stackTraceSerialNumber = stackTraceSerialNumber,
-                                            array = CharArray(arrayLength) { readChar() }
-                                        )
-                                    }
-
-                                    PrimitiveType.FLOAT.hprofType -> {
-                                        HprofRecord.FloatArrayRecord(
-                                            id = id,
-                                            stackTraceSerialNumber = stackTraceSerialNumber,
-                                            array = FloatArray(arrayLength) { readFloat() }
-                                        )
-                                    }
-
-                                    PrimitiveType.DOUBLE.hprofType -> {
-                                        HprofRecord.DoubleArrayRecord(
-                                            id = id,
-                                            stackTraceSerialNumber = stackTraceSerialNumber,
-                                            array = DoubleArray(arrayLength) { readDouble() }
-                                        )
-                                    }
-
-                                    PrimitiveType.BYTE.hprofType -> {
-                                        HprofRecord.ByteArrayRecord(
-                                            id = id,
-                                            stackTraceSerialNumber = stackTraceSerialNumber,
-                                            array = ByteArray(arrayLength) { readByte() }
-                                        )
-                                    }
-
-                                    PrimitiveType.SHORT.hprofType -> {
-                                        HprofRecord.ShortArrayRecord(
-                                            id = id,
-                                            stackTraceSerialNumber = stackTraceSerialNumber,
-                                            array = ShortArray(arrayLength) { readShort() }
-                                        )
-                                    }
-
-                                    PrimitiveType.INT.hprofType -> {
-                                        HprofRecord.IntArrayRecord(
-                                            id = id,
-                                            stackTraceSerialNumber = stackTraceSerialNumber,
-                                            array = IntArray(arrayLength) { readInt() }
-                                        )
-                                    }
-
-                                    PrimitiveType.LONG.hprofType -> {
-                                        HprofRecord.LongArrayRecord(
-                                            id = id,
-                                            stackTraceSerialNumber = stackTraceSerialNumber,
-                                            array = LongArray(arrayLength) { readLong() }
-                                        )
-                                    }
-
-                                    else -> {
-                                        throw IOException("Wrong PrimitiveType: $type")
-                                    }
-                                }
-                                subRecords.add(r)
-                            }
-
-                            HprofRecordTag.PRIMITIVE_ARRAY_NODATA -> {
-                                throw IOException("Not support PRIMITIVE_ARRAY_NODATA")
-                            }
-
-                            /**
-                             * - heapId
-                             * - stringId
-                             */
-                            HprofRecordTag.HEAP_DUMP_INFO -> {
-                                val r = HprofRecord.HeapDumpInfoRecord(
-                                    heapId = readId(header.identifierByteSize),
-                                    stringId = readId(header.identifierByteSize)
-                                )
-                                subRecords.add(r)
-                            }
-
-                            else -> {
-                                throw IOException("Wrong subTag: $subTag")
-                            }
-                        }
-                    }
-                    val r = HprofRecord.HeapDumpRecord(
-                        subRecords = subRecords
-                    )
-                    heapDumpRecord.add(r)
-                }
+                heapDumpRecord.add(readHeapDumpRecord(header, bodyLength))
             }
 
             HprofRecordTag.HEAP_DUMP_END -> {
