@@ -30,6 +30,10 @@ fun BufferedSource.readUnsignedByte(): Int {
     return readByte().toInt() and BYTE_MASK
 }
 
+fun BufferedSource.readUnsignedShort(): Int {
+    return readShort().toInt() and 0xFFFF
+}
+
 fun BufferedSource.readId(identifierByteSize: Int): Long {
     // As long as we don't interpret IDs, reading signed values here is fine.
     return when (identifierByteSize) {
@@ -78,4 +82,36 @@ fun BufferedSource.readValue(type: Int, identifierByteSize: Int): ValueHolder {
         LONG_TYPE -> ValueHolder.LongHolder(readLong())
         else -> throw IllegalStateException("Unknown type $type")
     }
+}
+
+fun BufferedSource.readConstField(identifierByteSize: Int): ConstField {
+    val index = readUnsignedInt().toInt()
+    val type = readUnsignedByte()
+    val value = readValue(
+        type = type,
+        identifierByteSize = identifierByteSize
+    )
+    return ConstField(
+        index = index,
+        value = value
+    )
+}
+
+fun BufferedSource.readStaticField(identifierByteSize: Int): StaticField {
+    val nameStringId = readId(identifierByteSize)
+    val type = readUnsignedByte()
+    val value = readValue(type = type, identifierByteSize = identifierByteSize)
+    return StaticField(
+        nameStringId = nameStringId,
+        value = value
+    )
+}
+
+fun BufferedSource.readMemberField(identifierByteSize: Int): MemberField {
+    val id = readId(identifierByteSize)
+    val type = readUnsignedByte()
+    return MemberField(
+        nameStringId = id,
+        type = type
+    )
 }
