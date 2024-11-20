@@ -150,6 +150,41 @@ fun BufferedSource.readLoadClassRecord(
     )
 }
 
+fun BufferedSource.readUnloadClassRecord(): HprofRecord.UnloadClassRecord {
+    return HprofRecord.UnloadClassRecord(
+        classSerialNumber = readInt(),
+        bodyLength = INT_SIZE.toLong()
+    )
+}
+
+fun BufferedSource.readStackFrameRecord(
+    header: HprofHeader
+): HprofRecord.StackFrameRecord {
+    return HprofRecord.StackFrameRecord(
+        id = readId(header.identifierByteSize),
+        methodNameStringId = readId(header.identifierByteSize),
+        methodSignatureStringId = readId(header.identifierByteSize),
+        sourceFileNameStringId = readId(header.identifierByteSize),
+        classSerialNumber = readInt(),
+        lineNumber = readInt(),
+        bodyLength = (INT_SIZE * 2 + header.identifierByteSize * 4).toLong()
+    )
+}
+
+fun BufferedSource.readStackTraceRecord(
+    header: HprofHeader
+): HprofRecord.StackTraceRecord {
+    val stackTraceSerialNumber = readInt()
+    val threadSerialNumber = readInt()
+    val stackFrameIds = LongArray(readInt()) { readId(header.identifierByteSize) }
+    return HprofRecord.StackTraceRecord(
+        stackTraceSerialNumber = stackTraceSerialNumber,
+        threadSerialNumber = threadSerialNumber,
+        stackFrameIds = stackFrameIds,
+        bodyLength = (INT_SIZE * 2 + header.identifierByteSize * stackFrameIds.size).toLong()
+    )
+}
+
 fun BufferedSource.readRootUnknownRecord(
     header: HprofHeader
 ): HprofRecord.RootUnknownRecord {

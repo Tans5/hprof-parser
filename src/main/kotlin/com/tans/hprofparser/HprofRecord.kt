@@ -23,6 +23,28 @@ sealed class HprofRecord {
         override val bodyLength: Long
     ) : HprofRecord()
 
+    data class UnloadClassRecord(
+        val classSerialNumber: Int,
+        override val bodyLength: Long
+    ) : HprofRecord()
+
+    data class StackFrameRecord(
+        val id: Long,
+        val methodNameStringId: Long,
+        val methodSignatureStringId: Long,
+        val sourceFileNameStringId: Long,
+        val classSerialNumber: Int,
+        val lineNumber: Int,
+        override val bodyLength: Long
+    ) : HprofRecord()
+
+    data class StackTraceRecord(
+        val stackTraceSerialNumber: Int,
+        val threadSerialNumber: Int,
+        val stackFrameIds: LongArray,
+        override val bodyLength: Long
+    ) : HprofRecord()
+
     data class RootUnknownRecord(
         val id: Long,
         override val bodyLength: Long
@@ -231,23 +253,9 @@ fun BufferedSource.parseRecords(header: HprofHeader): Map<Class<out HprofRecord>
 
     val strings = ArrayList<HprofRecord.StringRecord>()
     val loadClasses = ArrayList<HprofRecord.LoadClassRecord>()
-
-    val rootUnknown = ArrayList<HprofRecord.RootUnknownRecord>()
-    val rootJniGlobal = ArrayList<HprofRecord.RootJniGlobalRecord>()
-    val rootJniLocal = ArrayList<HprofRecord.RootJniLocalRecord>()
-    val rootJavaFrame = ArrayList<HprofRecord.RootJavaFrameRecord>()
-    val rootNativeStack = ArrayList<HprofRecord.RootNativeStackRecord>()
-    val rootStickyClass = ArrayList<HprofRecord.RootStickyClassRecord>()
-    val rootThreadBlock = ArrayList<HprofRecord.RootThreadBlockRecord>()
-    val rootMonitorUsed = ArrayList<HprofRecord.RootMonitorUsedRecord>()
-    val rootThreadObject = ArrayList<HprofRecord.RootThreadObjectRecord>()
-    val rootInternalStringRecord = ArrayList<HprofRecord.RootInternedStringRecord>()
-    val rootFinalizing = ArrayList<HprofRecord.RootFinalizingRecord>()
-    val rootDebugger = ArrayList<HprofRecord.RootDebuggerRecord>()
-    val rootReferenceCleanup = ArrayList<HprofRecord.RootReferenceCleanupRecord>()
-    val rootVmInternal = ArrayList<HprofRecord.RootVmInternalRecord>()
-    val rootJniMonitor = ArrayList<HprofRecord.RootJniMonitorRecord>()
-    val rootUnReachable = ArrayList<HprofRecord.RootUnReachableRecord>()
+    val unloadClasses = ArrayList<HprofRecord.UnloadClassRecord>()
+    val stackFrames = ArrayList<HprofRecord.StackFrameRecord>()
+    val stackTraces = ArrayList<HprofRecord.StackTraceRecord>()
 
     val heapDumpRecord = ArrayList<HprofRecord.HeapDumpRecord>()
 
@@ -260,28 +268,11 @@ fun BufferedSource.parseRecords(header: HprofHeader): Map<Class<out HprofRecord>
 
     ret[HprofRecord.StringRecord::class.java] = strings
     ret[HprofRecord.LoadClassRecord::class.java] = loadClasses
-
-    ret[HprofRecord.RootUnknownRecord::class.java] = rootUnknown
-    ret[HprofRecord.RootJniGlobalRecord::class.java] = rootJniGlobal
-    ret[HprofRecord.RootJniLocalRecord::class.java] = rootJniLocal
-    ret[HprofRecord.RootJavaFrameRecord::class.java] = rootJavaFrame
-    ret[HprofRecord.RootNativeStackRecord::class.java] = rootNativeStack
-    ret[HprofRecord.RootStickyClassRecord::class.java] = rootStickyClass
-    ret[HprofRecord.RootThreadBlockRecord::class.java] = rootThreadBlock
-    ret[HprofRecord.RootMonitorUsedRecord::class.java] = rootMonitorUsed
-    ret[HprofRecord.RootThreadObjectRecord::class.java] = rootThreadObject
-    ret[HprofRecord.RootInternedStringRecord::class.java] = rootInternalStringRecord
-    ret[HprofRecord.RootFinalizingRecord::class.java] = rootFinalizing
-    ret[HprofRecord.RootDebuggerRecord::class.java] = rootDebugger
-    ret[HprofRecord.RootReferenceCleanupRecord::class.java] = rootReferenceCleanup
-    ret[HprofRecord.RootVmInternalRecord::class.java] = rootVmInternal
-    ret[HprofRecord.RootJniMonitorRecord::class.java] = rootJniMonitor
-    ret[HprofRecord.RootUnReachableRecord::class.java] = rootUnReachable
-
+    ret[HprofRecord.UnloadClassRecord::class.java] = unloadClasses
+    ret[HprofRecord.StackFrameRecord::class.java] = stackFrames
+    ret[HprofRecord.StackTraceRecord::class.java] = stackTraces
     ret[HprofRecord.HeapDumpRecord::class.java] = heapDumpRecord
-
     ret[HprofRecord.HeapDumpEnd::class.java] = heapDumpEnd
-
     ret[HprofRecord.UnknownRecord::class.java] = unknown
 
     val stringsMap = HashMap<Long, HprofRecord.StringRecord>()
@@ -289,14 +280,10 @@ fun BufferedSource.parseRecords(header: HprofHeader): Map<Class<out HprofRecord>
 
     while (!exhausted()) {
         val tagInt = this.readUnsignedByte()
-        val tag = HprofRecordTag.entries.find { it.tag == tagInt }
-        if (tag == null) {
-            throw IOException("Unknown tag=$tagInt")
-        }
         val timeStamp = this.readUnsignedInt()
         val bodyLength = this.readUnsignedInt()
 
-        when (tag.tag) {
+        when (tagInt) {
 
             /**
              * - resId
@@ -320,100 +307,19 @@ fun BufferedSource.parseRecords(header: HprofHeader): Map<Class<out HprofRecord>
                 loadClassesMap[r.id] = r
             }
 
-            HprofRecordTag.ROOT_UNKNOWN.tag -> {
-                rootUnknown.add(readRootUnknownRecord(header))
-            }
-
             /**
-             * - id
-             * - refId
+             * classSerialNumber(Int)
              */
-            HprofRecordTag.ROOT_JNI_GLOBAL.tag -> {
-                rootJniGlobal.add(readRootJniGlobalRecord(header))
+            HprofRecordTag.UNLOAD_CLASS.tag -> {
+                unloadClasses.add(readUnloadClassRecord())
             }
 
-            /**
-             * - id
-             * - threadSerialNumber(int)
-             * - frameNumber(int)
-             */
-            HprofRecordTag.ROOT_JNI_LOCAL.tag -> {
-                rootJniLocal.add(readRootJniLocalRecord(header))
+            HprofRecordTag.STACK_FRAME.tag -> {
+                stackFrames.add(readStackFrameRecord(header))
             }
 
-            /**
-             * - id
-             * - threadSerialNumber(int)
-             * - frameNumber(int)
-             */
-            HprofRecordTag.ROOT_JAVA_FRAME.tag -> {
-                rootJavaFrame.add(readRootJavaFrameRecord(header))
-            }
-
-            /**
-             * - id
-             * - threadSerialNumber(int)
-             */
-            HprofRecordTag.ROOT_NATIVE_STACK.tag -> {
-                rootNativeStack.add(readRootNativeStackRecord(header))
-            }
-
-            HprofRecordTag.ROOT_STICKY_CLASS.tag -> {
-                rootStickyClass.add(readRootStickyClassRecord(header))
-            }
-
-            /**
-             * - id
-             * - threadSerialNumber(int)
-             */
-            HprofRecordTag.ROOT_THREAD_BLOCK.tag -> {
-                rootThreadBlock.add(readRootThreadBlockRecord(header))
-            }
-
-            HprofRecordTag.ROOT_MONITOR_USED.tag -> {
-                rootMonitorUsed.add(readRootMonitorUsedRecord(header))
-            }
-
-            /**
-             * - id
-             * - threadSerialNumber(int)
-             * - frameNumber(int)
-             */
-            HprofRecordTag.ROOT_THREAD_OBJECT.tag -> {
-                rootThreadObject.add(readRootThreadObjectRecord(header))
-            }
-
-            HprofRecordTag.ROOT_INTERNED_STRING.tag -> {
-                rootInternalStringRecord.add(readRootInternedStringRecord(header))
-            }
-
-            HprofRecordTag.ROOT_FINALIZING.tag -> {
-                rootFinalizing.add(readRootFinalizingRecord(header))
-            }
-
-            HprofRecordTag.ROOT_DEBUGGER.tag -> {
-                rootDebugger.add(readRootDebuggerRecord(header))
-            }
-
-            HprofRecordTag.ROOT_REFERENCE_CLEANUP.tag -> {
-                rootReferenceCleanup.add(readRootReferenceCleanupRecord(header))
-            }
-
-            HprofRecordTag.ROOT_VM_INTERNAL.tag -> {
-                rootVmInternal.add(readRootVmInternalRecord(header))
-            }
-
-            /**
-             * - id
-             * - threadSerialNumber(int)
-             * - stackDepth(int)
-             */
-            HprofRecordTag.ROOT_JNI_MONITOR.tag -> {
-                rootJniMonitor.add(readRootJniMonitorRecord(header))
-            }
-
-            HprofRecordTag.ROOT_UNREACHABLE.tag -> {
-                rootUnReachable.add(readRootUnreachableRecord(header))
+            HprofRecordTag.STACK_TRACE.tag -> {
+                stackTraces.add(readStackTraceRecord(header))
             }
 
             HprofRecordTag.HEAP_DUMP.tag, HprofRecordTag.HEAP_DUMP_SEGMENT.tag -> {
