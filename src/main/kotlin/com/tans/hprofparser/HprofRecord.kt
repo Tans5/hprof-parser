@@ -6,12 +6,12 @@ import kotlin.jvm.Throws
 
 sealed class HprofRecord {
 
-    abstract val bodyLength: Int
+    abstract val bodyLength: Long
 
     data class StringRecord(
         val resId: Long,
         val string: String,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data class LoadClassRecord(
@@ -20,103 +20,103 @@ sealed class HprofRecord {
         val stackTraceSerialNumber: Int,
         val classNameStrId: Long,
         val className: StringRecord?,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data class RootUnknownRecord(
         val id: Long,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data class RootJniGlobalRecord(
         val id: Long,
         val refId: Long,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data class RootJniLocalRecord(
         val id: Long,
         val threadSerialNumber: Int,
         val frameNumber: Int,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data class RootJavaFrameRecord(
         val id: Long,
         val threadSerialNumber: Int,
         val frameNumber: Int,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data class RootNativeStackRecord(
         val id: Long,
         val threadSerialNumber: Int,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data class RootStickyClassRecord(
         val id: Long,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data class RootThreadBlockRecord(
         val id: Long,
         val threadSerialNumber: Int,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data class RootMonitorUsedRecord(
         val id: Long,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data class RootThreadObjectRecord(
         val id: Long,
         val threadSerialNumber: Int,
         val frameNumber: Int,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data class RootInternedStringRecord(
         val id: Long,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data class RootFinalizingRecord(
         val id: Long,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data class RootDebuggerRecord(
         val id: Long,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data class RootReferenceCleanupRecord(
         val id: Long,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data class RootVmInternalRecord(
         val id: Long,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data class RootJniMonitorRecord(
         val id: Long,
         val threadSerialNumber: Int,
         val stackDepth: Int,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data class RootUnReachableRecord(
         val id: Long,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data class HeapDumpRecord(
         val subRecords: List<HprofRecord>,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data class ClassDumpRecord(
@@ -131,7 +131,7 @@ sealed class HprofRecord {
         val constFields: List<ConstField>,
         val staticFields: List<StaticField>,
         val memberFields: List<MemberField>,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
 
@@ -140,30 +140,8 @@ sealed class HprofRecord {
         val stackTraceSerialNumber: Int,
         val classId: Long,
         val fieldValue: ByteArray,
-        override val bodyLength: Int
-    ) : HprofRecord() {
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (javaClass != other?.javaClass) return false
-
-            other as InstanceDumpRecord
-
-            if (id != other.id) return false
-            if (stackTraceSerialNumber != other.stackTraceSerialNumber) return false
-            if (classId != other.classId) return false
-            if (!fieldValue.contentEquals(other.fieldValue)) return false
-
-            return true
-        }
-
-        override fun hashCode(): Int {
-            var result = id.hashCode()
-            result = 31 * result + stackTraceSerialNumber
-            result = 31 * result + classId.hashCode()
-            result = 31 * result + fieldValue.contentHashCode()
-            return result
-        }
-    }
+        override val bodyLength: Long
+    ) : HprofRecord()
 
     data class ObjectArrayRecord(
         val id: Long,
@@ -171,127 +149,81 @@ sealed class HprofRecord {
         val arrayLength: Int,
         val arrayClassId: Long,
         val elementIds: LongArray,
-        override val bodyLength: Int
-    ) : HprofRecord() {
-
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (javaClass != other?.javaClass) return false
-
-            other as ObjectArrayRecord
-
-            if (id != other.id) return false
-            if (stackTraceSerialNumber != other.stackTraceSerialNumber) return false
-            if (arrayLength != other.arrayLength) return false
-            if (arrayClassId != other.arrayClassId) return false
-            if (!elementIds.contentEquals(other.elementIds)) return false
-
-            return true
-        }
-
-        override fun hashCode(): Int {
-            var result = id.hashCode()
-            result = 31 * result + stackTraceSerialNumber
-            result = 31 * result + arrayLength
-            result = 31 * result + arrayClassId.hashCode()
-            result = 31 * result + elementIds.contentHashCode()
-            return result
-        }
-    }
+        override val bodyLength: Long
+    ) : HprofRecord()
 
     data class BoolArrayRecord(
         val id: Long,
         val stackTraceSerialNumber: Int,
         val array: BooleanArray,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data class CharArrayRecord(
         val id: Long,
         val stackTraceSerialNumber: Int,
         val array: CharArray,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data class FloatArrayRecord(
         val id: Long,
         val stackTraceSerialNumber: Int,
         val array: FloatArray,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data class DoubleArrayRecord(
         val id: Long,
         val stackTraceSerialNumber: Int,
         val array: DoubleArray,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data class ByteArrayRecord(
         val id: Long,
         val stackTraceSerialNumber: Int,
         val array: ByteArray,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data class ShortArrayRecord(
         val id: Long,
         val stackTraceSerialNumber: Int,
         val array: ShortArray,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data class IntArrayRecord(
         val id: Long,
         val stackTraceSerialNumber: Int,
         val array: IntArray,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data class LongArrayRecord(
         val id: Long,
         val stackTraceSerialNumber: Int,
         val array: LongArray,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data class HeapDumpInfoRecord(
         val heapId: Long,
         val stringId: Long,
-        override val bodyLength: Int
+        override val bodyLength: Long
     ) : HprofRecord()
 
     data object HeapDumpEnd : HprofRecord() {
-        override val bodyLength: Int = 0
+        override val bodyLength: Long = 0
     }
 
     data class UnknownRecord(
-        val tag: HprofRecordTag,
-        val timeStamp: Int,
-        override val bodyLength: Int,
+        val tag: HprofRecordTag?,
+        val timeStamp: Long,
+        override val bodyLength: Long,
         val body: ByteArray
-    ) : HprofRecord() {
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (javaClass != other?.javaClass) return false
-            other as UnknownRecord
-
-            if (tag != other.tag) return false
-            if (timeStamp != other.timeStamp) return false
-            if (bodyLength != other.bodyLength) return false
-            if (!body.contentEquals(other.body)) return false
-
-            return true
-        }
-
-        override fun hashCode(): Int {
-            var result = tag.hashCode()
-            result = 31 * result + timeStamp
-            result = 31 * result + bodyLength
-            result = 31 * result + body.contentHashCode()
-            return result
-        }
-    }
+    ) : HprofRecord()
 }
 
 @Throws(IOException::class)
@@ -361,16 +293,16 @@ fun BufferedSource.parseRecords(header: HprofHeader): Map<Class<out HprofRecord>
         if (tag == null) {
             throw IOException("Unknown tag=$tagInt")
         }
-        val timeStamp = this.readInt()
-        val bodyLength = this.readInt()
+        val timeStamp = this.readUnsignedInt()
+        val bodyLength = this.readUnsignedInt()
 
-        when (tag) {
+        when (tag.tag) {
 
             /**
              * - resId
              * - string body
              */
-            HprofRecordTag.STRING_IN_UTF8 -> {
+            HprofRecordTag.STRING_IN_UTF8.tag -> {
                 val sr = readStringRecord(header, bodyLength)
                 stringsMap[sr.resId] = sr
                 strings.add(sr)
@@ -382,13 +314,13 @@ fun BufferedSource.parseRecords(header: HprofHeader): Map<Class<out HprofRecord>
              * - stackTraceSerialNumber(Int)
              * - classNameStringId
              */
-            HprofRecordTag.LOAD_CLASS -> {
+            HprofRecordTag.LOAD_CLASS.tag -> {
                 val r = readLoadClassRecord(header, stringsMap)
                 loadClasses.add(r)
                 loadClassesMap[r.id] = r
             }
 
-            HprofRecordTag.ROOT_UNKNOWN -> {
+            HprofRecordTag.ROOT_UNKNOWN.tag -> {
                 rootUnknown.add(readRootUnknownRecord(header))
             }
 
@@ -396,7 +328,7 @@ fun BufferedSource.parseRecords(header: HprofHeader): Map<Class<out HprofRecord>
              * - id
              * - refId
              */
-            HprofRecordTag.ROOT_JNI_GLOBAL -> {
+            HprofRecordTag.ROOT_JNI_GLOBAL.tag -> {
                 rootJniGlobal.add(readRootJniGlobalRecord(header))
             }
 
@@ -405,7 +337,7 @@ fun BufferedSource.parseRecords(header: HprofHeader): Map<Class<out HprofRecord>
              * - threadSerialNumber(int)
              * - frameNumber(int)
              */
-            HprofRecordTag.ROOT_JNI_LOCAL -> {
+            HprofRecordTag.ROOT_JNI_LOCAL.tag -> {
                 rootJniLocal.add(readRootJniLocalRecord(header))
             }
 
@@ -414,7 +346,7 @@ fun BufferedSource.parseRecords(header: HprofHeader): Map<Class<out HprofRecord>
              * - threadSerialNumber(int)
              * - frameNumber(int)
              */
-            HprofRecordTag.ROOT_JAVA_FRAME -> {
+            HprofRecordTag.ROOT_JAVA_FRAME.tag -> {
                 rootJavaFrame.add(readRootJavaFrameRecord(header))
             }
 
@@ -422,11 +354,11 @@ fun BufferedSource.parseRecords(header: HprofHeader): Map<Class<out HprofRecord>
              * - id
              * - threadSerialNumber(int)
              */
-            HprofRecordTag.ROOT_NATIVE_STACK -> {
+            HprofRecordTag.ROOT_NATIVE_STACK.tag -> {
                 rootNativeStack.add(readRootNativeStackRecord(header))
             }
 
-            HprofRecordTag.ROOT_STICKY_CLASS -> {
+            HprofRecordTag.ROOT_STICKY_CLASS.tag -> {
                 rootStickyClass.add(readRootStickyClassRecord(header))
             }
 
@@ -434,11 +366,11 @@ fun BufferedSource.parseRecords(header: HprofHeader): Map<Class<out HprofRecord>
              * - id
              * - threadSerialNumber(int)
              */
-            HprofRecordTag.ROOT_THREAD_BLOCK -> {
+            HprofRecordTag.ROOT_THREAD_BLOCK.tag -> {
                 rootThreadBlock.add(readRootThreadBlockRecord(header))
             }
 
-            HprofRecordTag.ROOT_MONITOR_USED -> {
+            HprofRecordTag.ROOT_MONITOR_USED.tag -> {
                 rootMonitorUsed.add(readRootMonitorUsedRecord(header))
             }
 
@@ -447,27 +379,27 @@ fun BufferedSource.parseRecords(header: HprofHeader): Map<Class<out HprofRecord>
              * - threadSerialNumber(int)
              * - frameNumber(int)
              */
-            HprofRecordTag.ROOT_THREAD_OBJECT -> {
+            HprofRecordTag.ROOT_THREAD_OBJECT.tag -> {
                 rootThreadObject.add(readRootThreadObjectRecord(header))
             }
 
-            HprofRecordTag.ROOT_INTERNED_STRING -> {
+            HprofRecordTag.ROOT_INTERNED_STRING.tag -> {
                 rootInternalStringRecord.add(readRootInternedStringRecord(header))
             }
 
-            HprofRecordTag.ROOT_FINALIZING -> {
+            HprofRecordTag.ROOT_FINALIZING.tag -> {
                 rootFinalizing.add(readRootFinalizingRecord(header))
             }
 
-            HprofRecordTag.ROOT_DEBUGGER -> {
+            HprofRecordTag.ROOT_DEBUGGER.tag -> {
                 rootDebugger.add(readRootDebuggerRecord(header))
             }
 
-            HprofRecordTag.ROOT_REFERENCE_CLEANUP -> {
+            HprofRecordTag.ROOT_REFERENCE_CLEANUP.tag -> {
                 rootReferenceCleanup.add(readRootReferenceCleanupRecord(header))
             }
 
-            HprofRecordTag.ROOT_VM_INTERNAL -> {
+            HprofRecordTag.ROOT_VM_INTERNAL.tag -> {
                 rootVmInternal.add(readRootVmInternalRecord(header))
             }
 
@@ -476,27 +408,27 @@ fun BufferedSource.parseRecords(header: HprofHeader): Map<Class<out HprofRecord>
              * - threadSerialNumber(int)
              * - stackDepth(int)
              */
-            HprofRecordTag.ROOT_JNI_MONITOR -> {
+            HprofRecordTag.ROOT_JNI_MONITOR.tag -> {
                 rootJniMonitor.add(readRootJniMonitorRecord(header))
             }
 
-            HprofRecordTag.ROOT_UNREACHABLE -> {
+            HprofRecordTag.ROOT_UNREACHABLE.tag -> {
                 rootUnReachable.add(readRootUnreachableRecord(header))
             }
 
-            HprofRecordTag.HEAP_DUMP, HprofRecordTag.HEAP_DUMP_SEGMENT -> {
+            HprofRecordTag.HEAP_DUMP.tag, HprofRecordTag.HEAP_DUMP_SEGMENT.tag -> {
                 heapDumpRecord.add(readHeapDumpRecord(header, bodyLength))
             }
 
-            HprofRecordTag.HEAP_DUMP_END -> {
+            HprofRecordTag.HEAP_DUMP_END.tag -> {
                 heapDumpEnd.add(HprofRecord.HeapDumpEnd)
             }
 
             else -> {
-                val body = readByteArray(bodyLength.toLong())
+                val body = readByteArray(bodyLength)
                 unknown.add(
                     HprofRecord.UnknownRecord(
-                        tag = tag,
+                        tag = HprofRecordTag.entries.find { it.tag == tagInt },
                         timeStamp = timeStamp,
                         bodyLength = bodyLength,
                         body = body

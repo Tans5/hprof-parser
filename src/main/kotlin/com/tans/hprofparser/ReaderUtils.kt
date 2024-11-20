@@ -125,10 +125,10 @@ fun BufferedSource.readMemberField(identifierByteSize: Int): MemberField {
     )
 }
 
-fun BufferedSource.readStringRecord(header: HprofHeader, bodyLength: Int): HprofRecord.StringRecord {
+fun BufferedSource.readStringRecord(header: HprofHeader, bodyLength: Long): HprofRecord.StringRecord {
     return HprofRecord.StringRecord(
         resId = readId(header.identifierByteSize),
-        string = readUtf8((bodyLength - header.identifierByteSize).toLong()),
+        string = readUtf8((bodyLength - header.identifierByteSize)),
         bodyLength = bodyLength
     )
 }
@@ -146,7 +146,7 @@ fun BufferedSource.readLoadClassRecord(
         stackTraceSerialNumber = stackTraceSerialNumber,
         classNameStrId = classNameStrId,
         className = stringsMap[classNameStrId],
-        bodyLength = INT_SIZE * 2 + header.identifierByteSize * 2
+        bodyLength = (INT_SIZE * 2 + header.identifierByteSize * 2).toLong()
     )
 }
 
@@ -155,7 +155,7 @@ fun BufferedSource.readRootUnknownRecord(
 ): HprofRecord.RootUnknownRecord {
     return HprofRecord.RootUnknownRecord(
         id = readId(header.identifierByteSize),
-        bodyLength = header.identifierByteSize
+        bodyLength = header.identifierByteSize.toLong()
     )
 }
 
@@ -165,7 +165,7 @@ fun BufferedSource.readRootJniGlobalRecord(
     return HprofRecord.RootJniGlobalRecord(
         id = readId(header.identifierByteSize),
         refId = readId(header.identifierByteSize),
-        bodyLength = header.identifierByteSize * 2
+        bodyLength = (header.identifierByteSize * 2).toLong()
     )
 }
 
@@ -176,7 +176,7 @@ fun BufferedSource.readRootJniLocalRecord(
         id = readId(header.identifierByteSize),
         threadSerialNumber = readInt(),
         frameNumber = readInt(),
-        bodyLength = header.identifierByteSize + INT_SIZE * 2
+        bodyLength = (header.identifierByteSize + INT_SIZE * 2).toLong()
     )
 }
 
@@ -187,7 +187,7 @@ fun BufferedSource.readRootJavaFrameRecord(
         id = readId(header.identifierByteSize),
         threadSerialNumber = readInt(),
         frameNumber = readInt(),
-        bodyLength = header.identifierByteSize + INT_SIZE * 2
+        bodyLength = (header.identifierByteSize + INT_SIZE * 2).toLong()
     )
 }
 
@@ -197,7 +197,7 @@ fun BufferedSource.readRootNativeStackRecord(
     return HprofRecord.RootNativeStackRecord(
         id = readId(header.identifierByteSize),
         threadSerialNumber = readInt(),
-        bodyLength = header.identifierByteSize + INT_SIZE
+        bodyLength = (header.identifierByteSize + INT_SIZE).toLong()
     )
 }
 
@@ -206,7 +206,7 @@ fun BufferedSource.readRootStickyClassRecord(
 ): HprofRecord.RootStickyClassRecord {
     return HprofRecord.RootStickyClassRecord(
         id = readId(header.identifierByteSize),
-        bodyLength = header.identifierByteSize
+        bodyLength = header.identifierByteSize.toLong()
     )
 }
 
@@ -216,7 +216,7 @@ fun BufferedSource.readRootThreadBlockRecord(
     return HprofRecord.RootThreadBlockRecord(
         id = readId(header.identifierByteSize),
         threadSerialNumber = readInt(),
-        bodyLength = header.identifierByteSize + INT_SIZE
+        bodyLength = (header.identifierByteSize + INT_SIZE).toLong()
     )
 }
 
@@ -225,7 +225,7 @@ fun BufferedSource.readRootMonitorUsedRecord(
 ): HprofRecord.RootMonitorUsedRecord {
     return HprofRecord.RootMonitorUsedRecord(
         id = readId(header.identifierByteSize),
-        bodyLength = header.identifierByteSize
+        bodyLength = header.identifierByteSize.toLong()
     )
 }
 
@@ -236,7 +236,7 @@ fun BufferedSource.readRootThreadObjectRecord(
         id = readId(header.identifierByteSize),
         threadSerialNumber = readInt(),
         frameNumber = readInt(),
-        bodyLength = header.identifierByteSize + INT_SIZE * 2
+        bodyLength = (header.identifierByteSize + INT_SIZE * 2).toLong()
     )
 }
 
@@ -245,7 +245,7 @@ fun BufferedSource.readRootInternedStringRecord(
 ): HprofRecord.RootInternedStringRecord {
     return HprofRecord.RootInternedStringRecord(
         id = readId(header.identifierByteSize),
-        bodyLength = header.identifierByteSize
+        bodyLength = header.identifierByteSize.toLong()
     )
 }
 
@@ -254,7 +254,7 @@ fun BufferedSource.readRootFinalizingRecord(
 ): HprofRecord.RootFinalizingRecord {
     return HprofRecord.RootFinalizingRecord(
         id = readId(header.identifierByteSize),
-        bodyLength = header.identifierByteSize
+        bodyLength = header.identifierByteSize.toLong()
     )
 }
 
@@ -263,7 +263,7 @@ fun BufferedSource.readRootDebuggerRecord(
 ): HprofRecord.RootDebuggerRecord {
     return HprofRecord.RootDebuggerRecord(
         id = readId(header.identifierByteSize),
-        bodyLength = header.identifierByteSize
+        bodyLength = header.identifierByteSize.toLong()
     )
 }
 
@@ -272,7 +272,7 @@ fun BufferedSource.readRootReferenceCleanupRecord(
 ): HprofRecord.RootReferenceCleanupRecord {
     return HprofRecord.RootReferenceCleanupRecord(
         id = readId(header.identifierByteSize),
-        bodyLength = header.identifierByteSize
+        bodyLength = header.identifierByteSize.toLong()
     )
 }
 
@@ -281,7 +281,7 @@ fun BufferedSource.readRootVmInternalRecord(
 ): HprofRecord.RootVmInternalRecord {
     return HprofRecord.RootVmInternalRecord(
         id = readId(header.identifierByteSize),
-        bodyLength = header.identifierByteSize
+        bodyLength = header.identifierByteSize.toLong()
     )
 }
 
@@ -292,7 +292,7 @@ fun BufferedSource.readRootJniMonitorRecord(
         id = readId(header.identifierByteSize),
         threadSerialNumber = readInt(),
         stackDepth = readInt(),
-        bodyLength = header.identifierByteSize + INT_SIZE * 2
+        bodyLength = (header.identifierByteSize + INT_SIZE * 2).toLong()
     )
 }
 
@@ -301,7 +301,7 @@ fun BufferedSource.readRootUnreachableRecord(
 ): HprofRecord.RootUnReachableRecord {
     return HprofRecord.RootUnReachableRecord(
         id = readId(header.identifierByteSize),
-        bodyLength = header.identifierByteSize
+        bodyLength = header.identifierByteSize.toLong()
     )
 }
 
@@ -354,7 +354,7 @@ fun BufferedSource.readClassDumpRecord(
         constFields = constFields,
         staticFields = staticFields,
         memberFields = memberFields,
-        bodyLength = bodySize
+        bodyLength = bodySize.toLong()
     )
 }
 
@@ -371,7 +371,7 @@ fun BufferedSource.readInstanceDumpRecord(
         stackTraceSerialNumber = stackTraceSerialNumber,
         classId = classId,
         fieldValue = fieldValue,
-        bodyLength = header.identifierByteSize * 2 + INT_SIZE * 2 + LONG_SIZE
+        bodyLength = (header.identifierByteSize * 2 + INT_SIZE * 2 + LONG_SIZE).toLong()
     )
 }
 
@@ -389,7 +389,7 @@ fun BufferedSource.readObjectArrayDumpRecord(
         arrayLength = arrayLength,
         arrayClassId = arrayClassId,
         elementIds = elementIds,
-        bodyLength = header.identifierByteSize * (2 + arrayLength) + INT_SIZE * 2
+        bodyLength = (header.identifierByteSize * (2 + arrayLength) + INT_SIZE * 2).toLong()
     )
 }
 
@@ -409,7 +409,7 @@ fun BufferedSource.readPrimitiveArrayDumpRecord(
                 id = id,
                 stackTraceSerialNumber = stackTraceSerialNumber,
                 array = BooleanArray(arrayLength) { readByte().toInt() != 0 },
-                bodyLength = bodyLength + arrayLength * BOOLEAN_SIZE
+                bodyLength = (bodyLength + arrayLength * BOOLEAN_SIZE).toLong()
             )
         }
 
@@ -418,7 +418,7 @@ fun BufferedSource.readPrimitiveArrayDumpRecord(
                 id = id,
                 stackTraceSerialNumber = stackTraceSerialNumber,
                 array = CharArray(arrayLength) { readChar() },
-                bodyLength = bodyLength + arrayLength * CHAR_SIZE
+                bodyLength = (bodyLength + arrayLength * CHAR_SIZE).toLong()
             )
         }
 
@@ -427,7 +427,7 @@ fun BufferedSource.readPrimitiveArrayDumpRecord(
                 id = id,
                 stackTraceSerialNumber = stackTraceSerialNumber,
                 array = FloatArray(arrayLength) { readFloat() },
-                bodyLength = bodyLength + arrayLength * FLOAT_SIZE
+                bodyLength = (bodyLength + arrayLength * FLOAT_SIZE).toLong()
             )
         }
 
@@ -436,7 +436,7 @@ fun BufferedSource.readPrimitiveArrayDumpRecord(
                 id = id,
                 stackTraceSerialNumber = stackTraceSerialNumber,
                 array = DoubleArray(arrayLength) { readDouble() },
-                bodyLength = bodyLength + arrayLength * DOUBLE_SIZE
+                bodyLength = (bodyLength + arrayLength * DOUBLE_SIZE).toLong()
             )
         }
 
@@ -445,7 +445,7 @@ fun BufferedSource.readPrimitiveArrayDumpRecord(
                 id = id,
                 stackTraceSerialNumber = stackTraceSerialNumber,
                 array = ByteArray(arrayLength) { readByte() },
-                bodyLength = bodyLength + arrayLength * BYTE_SIZE
+                bodyLength = (bodyLength + arrayLength * BYTE_SIZE).toLong()
             )
         }
 
@@ -454,7 +454,7 @@ fun BufferedSource.readPrimitiveArrayDumpRecord(
                 id = id,
                 stackTraceSerialNumber = stackTraceSerialNumber,
                 array = ShortArray(arrayLength) { readShort() },
-                bodyLength = bodyLength + arrayLength * SHORT_SIZE
+                bodyLength = (bodyLength + arrayLength * SHORT_SIZE).toLong()
             )
         }
 
@@ -463,7 +463,7 @@ fun BufferedSource.readPrimitiveArrayDumpRecord(
                 id = id,
                 stackTraceSerialNumber = stackTraceSerialNumber,
                 array = IntArray(arrayLength) { readInt() },
-                bodyLength = bodyLength + arrayLength * INT_SIZE
+                bodyLength = (bodyLength + arrayLength * INT_SIZE).toLong()
             )
         }
 
@@ -472,7 +472,7 @@ fun BufferedSource.readPrimitiveArrayDumpRecord(
                 id = id,
                 stackTraceSerialNumber = stackTraceSerialNumber,
                 array = LongArray(arrayLength) { readLong() },
-                bodyLength = bodyLength + arrayLength * LONG_SIZE
+                bodyLength = (bodyLength + arrayLength * LONG_SIZE).toLong()
             )
         }
 
@@ -489,73 +489,68 @@ fun BufferedSource.readHeapDumpInfoRecord(
     return HprofRecord.HeapDumpInfoRecord(
         heapId = readId(header.identifierByteSize),
         stringId = readId(header.identifierByteSize),
-        bodyLength = header.identifierByteSize * 2
+        bodyLength = (header.identifierByteSize * 2).toLong()
     )
 }
 
 fun BufferedSource.readHeapDumpRecord(
     header: HprofHeader,
-    bodyLength: Int): HprofRecord.HeapDumpRecord {
+    bodyLength: Long): HprofRecord.HeapDumpRecord {
     val body = readByteArray(bodyLength.toLong())
     ByteArrayInputStream(body).source().buffer().use {
         with(it) {
             val subRecords = ArrayList<HprofRecord>()
             while (!this.exhausted()) {
-                val subTagInt = readUnsignedByte()
-                val subTag = HprofRecordTag.entries.find { it.tag == subTagInt }
-                if (subTag == null) {
-                    throw IOException("Unknown tag=$subTagInt")
-                }
-                when (subTag) {
-                    HprofRecordTag.ROOT_UNKNOWN -> {
+                when (val subTagInt = readUnsignedByte()) {
+                    HprofRecordTag.ROOT_UNKNOWN.tag -> {
                         subRecords.add(readRootUnknownRecord(header))
                     }
-                    HprofRecordTag.ROOT_JNI_GLOBAL -> {
+                    HprofRecordTag.ROOT_JNI_GLOBAL.tag -> {
                         subRecords.add(readRootJniGlobalRecord(header))
                     }
-                    HprofRecordTag.ROOT_JNI_LOCAL -> {
+                    HprofRecordTag.ROOT_JNI_LOCAL.tag -> {
                         subRecords.add(readRootJniLocalRecord(header))
                     }
-                    HprofRecordTag.ROOT_JAVA_FRAME -> {
+                    HprofRecordTag.ROOT_JAVA_FRAME.tag -> {
                         subRecords.add(readRootJavaFrameRecord(header))
                     }
-                    HprofRecordTag.ROOT_NATIVE_STACK -> {
+                    HprofRecordTag.ROOT_NATIVE_STACK.tag -> {
                         subRecords.add(readRootNativeStackRecord(header))
                     }
-                    HprofRecordTag.ROOT_STICKY_CLASS -> {
+                    HprofRecordTag.ROOT_STICKY_CLASS.tag -> {
                         subRecords.add(readRootStickyClassRecord(header))
                     }
-                    HprofRecordTag.ROOT_THREAD_BLOCK -> {
+                    HprofRecordTag.ROOT_THREAD_BLOCK.tag -> {
                         subRecords.add(readRootThreadBlockRecord(header))
                     }
-                    HprofRecordTag.ROOT_MONITOR_USED -> {
+                    HprofRecordTag.ROOT_MONITOR_USED.tag -> {
                         subRecords.add(readRootMonitorUsedRecord(header))
                     }
-                    HprofRecordTag.ROOT_THREAD_OBJECT -> {
+                    HprofRecordTag.ROOT_THREAD_OBJECT.tag -> {
                         subRecords.add(readRootThreadObjectRecord(header))
                     }
-                    HprofRecordTag.ROOT_INTERNED_STRING -> {
+                    HprofRecordTag.ROOT_INTERNED_STRING.tag -> {
                         subRecords.add(readRootInternedStringRecord(header))
                     }
-                    HprofRecordTag.ROOT_FINALIZING -> {
+                    HprofRecordTag.ROOT_FINALIZING.tag -> {
                         subRecords.add(readRootFinalizingRecord(header))
                     }
-                    HprofRecordTag.ROOT_DEBUGGER -> {
+                    HprofRecordTag.ROOT_DEBUGGER.tag -> {
                         subRecords.add(readRootDebuggerRecord(header))
                     }
-                    HprofRecordTag.ROOT_REFERENCE_CLEANUP -> {
+                    HprofRecordTag.ROOT_REFERENCE_CLEANUP.tag -> {
                         subRecords.add(readRootReferenceCleanupRecord(header))
                     }
 
-                    HprofRecordTag.ROOT_VM_INTERNAL -> {
+                    HprofRecordTag.ROOT_VM_INTERNAL.tag -> {
                         subRecords.add(readRootVmInternalRecord(header))
                     }
 
-                    HprofRecordTag.ROOT_JNI_MONITOR -> {
+                    HprofRecordTag.ROOT_JNI_MONITOR.tag -> {
                         subRecords.add(readRootJniMonitorRecord(header))
                     }
 
-                    HprofRecordTag.ROOT_UNREACHABLE -> {
+                    HprofRecordTag.ROOT_UNREACHABLE.tag -> {
                         subRecords.add(readRootUnreachableRecord(header))
                     }
 
@@ -580,7 +575,7 @@ fun BufferedSource.readHeapDumpRecord(
                      *    - id
                      *    - type(byte)
                      */
-                    HprofRecordTag.CLASS_DUMP -> {
+                    HprofRecordTag.CLASS_DUMP.tag -> {
                         subRecords.add(readClassDumpRecord(header))
                     }
 
@@ -591,7 +586,7 @@ fun BufferedSource.readHeapDumpRecord(
                      * - fieldSize(int)
                      * - fieldValue
                      */
-                    HprofRecordTag.INSTANCE_DUMP -> {
+                    HprofRecordTag.INSTANCE_DUMP.tag -> {
                         subRecords.add(readInstanceDumpRecord(header))
                     }
 
@@ -602,7 +597,7 @@ fun BufferedSource.readHeapDumpRecord(
                      * - arrayClassId
                      * - elementIds (count of arrayLength)
                      */
-                    HprofRecordTag.OBJECT_ARRAY_DUMP -> {
+                    HprofRecordTag.OBJECT_ARRAY_DUMP.tag -> {
                         subRecords.add(readObjectArrayDumpRecord(header))
                     }
 
@@ -613,11 +608,11 @@ fun BufferedSource.readHeapDumpRecord(
                      * - elementType(byte)
                      * - elementValues
                      */
-                    HprofRecordTag.PRIMITIVE_ARRAY_DUMP -> {
+                    HprofRecordTag.PRIMITIVE_ARRAY_DUMP.tag -> {
                         subRecords.add(readPrimitiveArrayDumpRecord(header))
                     }
 
-                    HprofRecordTag.PRIMITIVE_ARRAY_NODATA -> {
+                    HprofRecordTag.PRIMITIVE_ARRAY_NODATA.tag -> {
                         throw IOException("Not support PRIMITIVE_ARRAY_NODATA")
                     }
 
@@ -625,12 +620,12 @@ fun BufferedSource.readHeapDumpRecord(
                      * - heapId
                      * - stringId
                      */
-                    HprofRecordTag.HEAP_DUMP_INFO -> {
+                    HprofRecordTag.HEAP_DUMP_INFO.tag -> {
                         subRecords.add(readHeapDumpInfoRecord(header))
                     }
 
                     else -> {
-                        throw IOException("Wrong subTag: $subTag")
+                        throw IOException("Wrong subTag: $subTagInt")
                     }
                 }
             }
