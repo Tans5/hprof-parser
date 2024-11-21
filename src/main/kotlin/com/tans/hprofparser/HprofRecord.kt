@@ -14,12 +14,11 @@ sealed class HprofRecord {
         override val bodyLength: Long
     ) : HprofRecord()
 
-    data class LoadClassRecord(
+    data class LoadedClassRecord(
         val classSerialNumber: Int,
         val id: Long,
         val stackTraceSerialNumber: Int,
         val classNameStrId: Long,
-        val className: StringRecord?,
         override val bodyLength: Long
     ) : HprofRecord()
 
@@ -131,7 +130,7 @@ sealed class HprofRecord {
         override val bodyLength: Long
     ) : HprofRecord()
 
-    data class RootUnReachableRecord(
+    data class RootUnreachableRecord(
         val id: Long,
         override val bodyLength: Long
     ) : HprofRecord()
@@ -249,10 +248,10 @@ sealed class HprofRecord {
 }
 
 @Throws(IOException::class)
-fun BufferedSource.parseRecords(header: HprofHeader): Map<Class<out HprofRecord>, List<HprofRecord>> {
+fun BufferedSource.parseHprofRecords(header: HprofHeader): Map<Class<out HprofRecord>, List<HprofRecord>> {
 
     val strings = ArrayList<HprofRecord.StringRecord>()
-    val loadClasses = ArrayList<HprofRecord.LoadClassRecord>()
+    val loadClasses = ArrayList<HprofRecord.LoadedClassRecord>()
     val unloadClasses = ArrayList<HprofRecord.UnloadClassRecord>()
     val stackFrames = ArrayList<HprofRecord.StackFrameRecord>()
     val stackTraces = ArrayList<HprofRecord.StackTraceRecord>()
@@ -267,16 +266,13 @@ fun BufferedSource.parseRecords(header: HprofHeader): Map<Class<out HprofRecord>
     val ret = HashMap<Class<out HprofRecord>, List<HprofRecord>>()
 
     ret[HprofRecord.StringRecord::class.java] = strings
-    ret[HprofRecord.LoadClassRecord::class.java] = loadClasses
+    ret[HprofRecord.LoadedClassRecord::class.java] = loadClasses
     ret[HprofRecord.UnloadClassRecord::class.java] = unloadClasses
     ret[HprofRecord.StackFrameRecord::class.java] = stackFrames
     ret[HprofRecord.StackTraceRecord::class.java] = stackTraces
     ret[HprofRecord.HeapDumpRecord::class.java] = heapDumpRecord
     ret[HprofRecord.HeapDumpEnd::class.java] = heapDumpEnd
     ret[HprofRecord.UnknownRecord::class.java] = unknown
-
-    val stringsMap = HashMap<Long, HprofRecord.StringRecord>()
-    val loadClassesMap = HashMap<Long, HprofRecord.LoadClassRecord>()
 
     while (!exhausted()) {
         val tagInt = this.readUnsignedByte()
@@ -291,7 +287,6 @@ fun BufferedSource.parseRecords(header: HprofHeader): Map<Class<out HprofRecord>
              */
             HprofRecordTag.STRING_IN_UTF8.tag -> {
                 val sr = readStringRecord(header, bodyLength)
-                stringsMap[sr.resId] = sr
                 strings.add(sr)
             }
 
@@ -302,9 +297,8 @@ fun BufferedSource.parseRecords(header: HprofHeader): Map<Class<out HprofRecord>
              * - classNameStringId
              */
             HprofRecordTag.LOAD_CLASS.tag -> {
-                val r = readLoadClassRecord(header, stringsMap)
+                val r = readLoadClassRecord(header)
                 loadClasses.add(r)
-                loadClassesMap[r.id] = r
             }
 
             /**

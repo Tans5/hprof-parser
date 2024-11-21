@@ -77,7 +77,7 @@ fun BufferedSource.readDouble(): Double {
 
 fun BufferedSource.readValue(type: Int, identifierByteSize: Int): ValueHolder {
     return when (type) {
-        PrimitiveType.REFERENCE_HPROF_TYPE -> ValueHolder.ReferenceHolder(readId(identifierByteSize), identifierByteSize)
+        PrimitiveType.REFERENCE_HPROF_TYPE -> ValueHolder.ReferenceHolder(readId(identifierByteSize), null, identifierByteSize)
         BOOLEAN_TYPE -> ValueHolder.BooleanHolder(readBoolean())
         CHAR_TYPE -> ValueHolder.CharHolder(readChar())
         FLOAT_TYPE -> ValueHolder.FloatHolder(readFloat())
@@ -134,18 +134,16 @@ fun BufferedSource.readStringRecord(header: HprofHeader, bodyLength: Long): Hpro
 }
 
 fun BufferedSource.readLoadClassRecord(
-    header: HprofHeader,
-    stringsMap: Map<Long, HprofRecord.StringRecord>): HprofRecord.LoadClassRecord {
+    header: HprofHeader): HprofRecord.LoadedClassRecord {
     val classSerialNumber = readInt()
     val id = readId(header.identifierByteSize)
     val stackTraceSerialNumber = readInt()
     val classNameStrId = readId(header.identifierByteSize)
-    return HprofRecord.LoadClassRecord(
+    return HprofRecord.LoadedClassRecord(
         classSerialNumber = classSerialNumber,
         id = id,
         stackTraceSerialNumber = stackTraceSerialNumber,
         classNameStrId = classNameStrId,
-        className = stringsMap[classNameStrId],
         bodyLength = (INT_SIZE * 2 + header.identifierByteSize * 2).toLong()
     )
 }
@@ -333,8 +331,8 @@ fun BufferedSource.readRootJniMonitorRecord(
 
 fun BufferedSource.readRootUnreachableRecord(
     header: HprofHeader
-): HprofRecord.RootUnReachableRecord {
-    return HprofRecord.RootUnReachableRecord(
+): HprofRecord.RootUnreachableRecord {
+    return HprofRecord.RootUnreachableRecord(
         id = readId(header.identifierByteSize),
         bodyLength = header.identifierByteSize.toLong()
     )
@@ -531,7 +529,7 @@ fun BufferedSource.readHeapDumpInfoRecord(
 fun BufferedSource.readHeapDumpRecord(
     header: HprofHeader,
     bodyLength: Long): HprofRecord.HeapDumpRecord {
-    val body = readByteArray(bodyLength.toLong())
+    val body = readByteArray(bodyLength)
     ByteArrayInputStream(body).source().buffer().use {
         with(it) {
             val subRecords = ArrayList<HprofRecord>()

@@ -5,6 +5,7 @@ sealed class ValueHolder {
 
     data class ReferenceHolder(
         val value: Long,
+        val refInstance: Instance?,
         override val size: Int
     ) : ValueHolder() {
         val isNull
