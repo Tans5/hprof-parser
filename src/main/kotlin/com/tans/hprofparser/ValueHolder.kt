@@ -5,11 +5,19 @@ sealed class ValueHolder {
 
     data class ReferenceHolder(
         val value: Long,
-        val refInstance: Instance?,
         override val size: Int
     ) : ValueHolder() {
+
         val isNull
             get() = value == NULL_REFERENCE
+
+        fun getRefInstance(instanceDic: Map<Long, Instance>): Instance? {
+            return if (isNull) {
+                null
+            } else {
+                instanceDic[value]
+            }
+        }
     }
 
     data class BooleanHolder(val value: Boolean, override val size: Int = PrimitiveType.BOOLEAN.byteSize) : ValueHolder()

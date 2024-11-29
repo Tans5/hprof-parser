@@ -77,7 +77,7 @@ fun BufferedSource.readDouble(): Double {
 
 fun BufferedSource.readValue(type: Int, identifierByteSize: Int): ValueHolder {
     return when (type) {
-        PrimitiveType.REFERENCE_HPROF_TYPE -> ValueHolder.ReferenceHolder(readId(identifierByteSize), null, identifierByteSize)
+        PrimitiveType.REFERENCE_HPROF_TYPE -> ValueHolder.ReferenceHolder(readId(identifierByteSize), identifierByteSize)
         BOOLEAN_TYPE -> ValueHolder.BooleanHolder(readBoolean())
         CHAR_TYPE -> ValueHolder.CharHolder(readChar())
         FLOAT_TYPE -> ValueHolder.FloatHolder(readFloat())

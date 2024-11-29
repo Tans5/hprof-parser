@@ -1,5 +1,10 @@
 package com.tans.hprofparser
 
+data class MemberFieldAndValue(
+    val field: MemberField,
+    val value: ValueHolder
+)
+
 sealed class Instance {
     abstract val id: Long
     abstract val stackTrace: StackTrace?
@@ -8,7 +13,8 @@ sealed class Instance {
         override val id: Long,
         override val stackTrace: StackTrace?,
         val clazz: LoadedClass?,
-        val value: ByteArray
+        val value: ByteArray,
+        val memberFields: List<MemberFieldAndValue>
     ) : Instance()
 
     data class BoolArrayInstance(
@@ -65,5 +71,19 @@ sealed class Instance {
         val arrayLength: Int,
         val arrayClass: LoadedClass?,
         val elements: List<Instance?>
+    ) : Instance()
+
+    data class ClassDump(
+        override val id: Long,
+        override val stackTrace: StackTrace?,
+        val clazz: LoadedClass?,
+        val supperClass: LoadedClass?,
+        val classLoader: Instance?,
+        val signersId: Long,
+        val protectionDomainId: Long,
+        val instanceSize: Int,
+        val constFields: List<ConstField>,
+        val staticFields: List<StaticField>,
+        val memberFields: List<MemberField>
     ) : Instance()
 }

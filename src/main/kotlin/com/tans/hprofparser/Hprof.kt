@@ -22,7 +22,7 @@ fun hprofParse(filePath: String): Hprof {
         val records = it.parseHprofRecords(header)
         header to records
     }
-    val linked = linkRecords(records as Map<Class<*>, List<HprofRecord>>)
+    val linked = linkRecords(records as Map<Class<*>, List<HprofRecord>>, header)
     return Hprof(
         header = header,
         records = records,

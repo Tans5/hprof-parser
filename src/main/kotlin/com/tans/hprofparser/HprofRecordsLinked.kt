@@ -1,5 +1,8 @@
 package com.tans.hprofparser
 
+import okio.buffer
+import okio.source
+import java.io.ByteArrayInputStream
 import java.io.IOException
 
 data class HprofRecordsLinked(
@@ -10,7 +13,7 @@ data class HprofRecordsLinked(
     val stackTracesDic: Map<Int, StackTrace>,
     val rootsDic: Map<Long, HprofRecord>,
     val instancesDic: Map<Long, Instance>,
-    val classDumpsDic: Map<Long, ClassDump>,
+    val clazzNameObjectInstanceDic: Map<String, List<Instance.ObjectInstance>>,
     val heapDumpInfoDic: Map<Long, HeapDumpInfo>
 ) {
 
@@ -28,13 +31,13 @@ data class HprofRecordsLinked(
 
     fun queryInstance(id: Long): Instance? = instancesDic[id]
 
-    fun queryClassDump(id: Long): ClassDump? = classDumpsDic[id]
+    fun queryObjectInstanceByClazzName(clazzName: String): List<Instance.ObjectInstance>? = clazzNameObjectInstanceDic[clazzName]
 
     fun queryHeapDumpInfo(id: Long): HeapDumpInfo? = heapDumpInfoDic[id]
 }
 
 @Suppress("UNCHECKED_CAST")
-fun linkRecords(records: Map<Class<*>, List<HprofRecord>>): HprofRecordsLinked {
+fun linkRecords(records: Map<Class<*>, List<HprofRecord>>, header: HprofHeader): HprofRecordsLinked {
 
     // Strings
     val stringsDic = HashMap<Long, HprofRecord.StringRecord>()
@@ -130,17 +133,50 @@ fun linkRecords(records: Map<Class<*>, List<HprofRecord>>): HprofRecordsLinked {
         }
     }
 
+    // ClassDumpRecord, InstanceDumpRecord, ObjectArrayRecord, PrimitiveArrayRecord
     val instanceDic = HashMap<Long, Instance>()
     // InstanceDumpRecord
     val instanceDumpRecords = (heapDumpSubRecords[HprofRecord.InstanceDumpRecord::class.java] ?: emptyList()) as List<HprofRecord.InstanceDumpRecord>
+    val clazzNameObjectInstanceDic = HashMap<String, List<Instance.ObjectInstance>>()
     for (r in instanceDumpRecords) {
         val objectInstance = Instance.ObjectInstance(
             id = r.id,
             stackTrace = stackTracesDic[r.stackTraceSerialNumber],
             clazz = loadedClassesDic[r.classId],
-            value = r.fieldValue
+            value = r.fieldValue,
+            memberFields = ArrayList()
         )
         instanceDic[r.id] = objectInstance
+        val clazzName = objectInstance.clazz?.className
+        if (clazzName != null) {
+            var list = clazzNameObjectInstanceDic[clazzName]
+            if (list == null) {
+                list = ArrayList()
+                clazzNameObjectInstanceDic[clazzName] = list
+            } else {
+                list as ArrayList
+            }
+            list.add(objectInstance)
+        }
+    }
+
+    // ClassDumpRecord
+    val classDumpRecords = (heapDumpSubRecords[HprofRecord.ClassDumpRecord::class.java] ?: emptyList()) as List<HprofRecord.ClassDumpRecord>
+    for (r in classDumpRecords) {
+        val classDump = Instance.ClassDump(
+            id = r.id,
+            stackTrace = stackTracesDic[r.stackTraceSerialNumber],
+            clazz = loadedClassesDic[r.id],
+            supperClass = loadedClassesDic[r.superClassId],
+            classLoader = instanceDic[r.classLoaderId],
+            signersId = r.signersId,
+            protectionDomainId = r.protectionDomainId,
+            instanceSize = r.instanceSize,
+            constFields = r.constFields,
+            staticFields = r.staticFields.map { it.copy(nameString = stringsDic[it.nameStringId]?.string) },
+            memberFields = r.memberFields.map { it.copy(nameString = stringsDic[it.nameStringId]?.string) }
+        )
+        instanceDic[classDump.id] = classDump
     }
 
     // PrimitiveArrayRecord
@@ -240,43 +276,6 @@ fun linkRecords(records: Map<Class<*>, List<HprofRecord>>): HprofRecordsLinked {
         }
     }
 
-    // ClassDumpRecord
-    val classDumpsDic = HashMap<Long, ClassDump>()
-    val classDumpRecords = (heapDumpSubRecords[HprofRecord.ClassDumpRecord::class.java] ?: emptyList()) as List<HprofRecord.ClassDumpRecord>
-    fun fixRefValueHolder(valueHolder: ValueHolder): ValueHolder {
-        return if (valueHolder is ValueHolder.ReferenceHolder) {
-            valueHolder.copy(refInstance = instanceDic[valueHolder.value])
-        } else {
-            valueHolder
-        }
-    }
-    for (r in classDumpRecords) {
-        val classDump = ClassDump(
-            id = r.id,
-            clazz = loadedClassesDic[r.id],
-            stackTrace = stackTracesDic[r.stackTraceSerialNumber],
-            supperClass = loadedClassesDic[r.superClassId],
-            classLoader = instanceDic[r.classLoaderId],
-            signersId = r.signersId,
-            protectionDomainId = r.protectionDomainId,
-            instanceSize = r.instanceSize,
-            constFields = r.constFields.map {
-                if (it.value is ValueHolder.ReferenceHolder) {
-                    it.copy(value = fixRefValueHolder(it.value))
-                } else {
-                    it
-                }
-            },
-            staticFields = r.staticFields.map {
-                it.copy(nameString = stringsDic[it.nameStringId]?.string, value = fixRefValueHolder(it.value))
-            },
-            memberFields = r.memberFields.map {
-                it.copy(nameString = stringsDic[it.nameStringId]?.string)
-            }
-        )
-        classDumpsDic[classDump.id] = classDump
-    }
-
     // HeapDumpInfoRecord
     val heapDumpInfoDic = HashMap<Long, HeapDumpInfo>()
     val heapDumpInfoRecords = (heapDumpSubRecords[HprofRecord.HeapDumpInfoRecord::class.java] ?: emptyList()) as List<HprofRecord.HeapDumpInfoRecord>
@@ -288,6 +287,37 @@ fun linkRecords(records: Map<Class<*>, List<HprofRecord>>): HprofRecordsLinked {
         heapDumpInfoDic[heapDumpInfo.heapId] = heapDumpInfo
     }
 
+    // Parse object instance fields
+    for ((_, instance) in instanceDic) {
+        if (instance is Instance.ObjectInstance) {
+            val allClasses = mutableListOf<Instance.ClassDump>()
+            var classId = instance.clazz?.id
+            while (classId != null) {
+                val c = instanceDic[classId]
+                if (c != null && c is Instance.ClassDump) {
+                    allClasses.add(c)
+                    classId = c.supperClass?.id
+                } else {
+                    break
+                }
+            }
+            ByteArrayInputStream(instance.value).source().buffer().use { source ->
+                val fields = instance.memberFields as ArrayList<MemberFieldAndValue>
+                for (c in allClasses) {
+                    for (f in c.memberFields) {
+                        source.readValue(f.type, header.identifierByteSize).apply {
+                            val v =  MemberFieldAndValue(
+                                field = f,
+                                value = this
+                            )
+                            fields.add(v)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     return HprofRecordsLinked(
         stringsDic = stringsDic,
         loadedClassesDic = loadedClassesDic,
@@ -296,7 +326,7 @@ fun linkRecords(records: Map<Class<*>, List<HprofRecord>>): HprofRecordsLinked {
         stackTracesDic = stackTracesDic,
         rootsDic = rootsDic,
         instancesDic = instanceDic,
-        classDumpsDic = classDumpsDic,
+        clazzNameObjectInstanceDic = clazzNameObjectInstanceDic,
         heapDumpInfoDic = heapDumpInfoDic
     )
 }
