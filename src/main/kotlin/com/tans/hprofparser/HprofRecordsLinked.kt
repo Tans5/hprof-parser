@@ -192,7 +192,7 @@ fun linkRecords(records: Map<Class<*>, List<HprofRecord>>, header: HprofHeader):
     )
     for (c in primitiveArrayRecordClasses) {
         for (r in (heapDumpSubRecords[c] ?: emptyList())) {
-            when (r) {
+            val i = when (r) {
                 is HprofRecord.BoolArrayRecord -> {
                     Instance.BoolArrayInstance(
                         id = r.id,
@@ -253,6 +253,7 @@ fun linkRecords(records: Map<Class<*>, List<HprofRecord>>, header: HprofHeader):
                     throw IOException("Wrong class type: ${r::class.java}")
                 }
             }
+            instanceDic[i.id] = i
         }
     }
 
