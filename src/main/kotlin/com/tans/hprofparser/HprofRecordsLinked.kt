@@ -163,7 +163,7 @@ fun linkRecords(records: Map<Class<*>, List<HprofRecord>>, header: HprofHeader):
     // ClassDumpRecord
     val classDumpRecords = (heapDumpSubRecords[HprofRecord.ClassDumpRecord::class.java] ?: emptyList()) as List<HprofRecord.ClassDumpRecord>
     for (r in classDumpRecords) {
-        val classDump = Instance.ClassDump(
+        val classDumpInstance = Instance.ClassDumpInstance(
             id = r.id,
             stackTrace = stackTracesDic[r.stackTraceSerialNumber],
             clazz = loadedClassesDic[r.id],
@@ -176,7 +176,7 @@ fun linkRecords(records: Map<Class<*>, List<HprofRecord>>, header: HprofHeader):
             staticFields = r.staticFields.map { it.copy(nameString = stringsDic[it.nameStringId]?.string) },
             memberFields = r.memberFields.map { it.copy(nameString = stringsDic[it.nameStringId]?.string) }
         )
-        instanceDic[classDump.id] = classDump
+        instanceDic[classDumpInstance.id] = classDumpInstance
     }
 
     // PrimitiveArrayRecord
@@ -291,11 +291,11 @@ fun linkRecords(records: Map<Class<*>, List<HprofRecord>>, header: HprofHeader):
     // Parse object instance fields
     for ((_, instance) in instanceDic) {
         if (instance is Instance.ObjectInstance) {
-            val allClasses = mutableListOf<Instance.ClassDump>()
+            val allClasses = mutableListOf<Instance.ClassDumpInstance>()
             var classId = instance.clazz?.id
             while (classId != null) {
                 val c = instanceDic[classId]
-                if (c != null && c is Instance.ClassDump) {
+                if (c != null && c is Instance.ClassDumpInstance) {
                     allClasses.add(c)
                     classId = c.supperClass?.id
                 } else {

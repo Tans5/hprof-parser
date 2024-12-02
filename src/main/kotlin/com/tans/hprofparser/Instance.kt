@@ -73,7 +73,7 @@ sealed class Instance {
         val elements: List<Instance?>
     ) : Instance()
 
-    data class ClassDump(
+    data class ClassDumpInstance(
         override val id: Long,
         override val stackTrace: StackTrace?,
         val clazz: LoadedClass?,
