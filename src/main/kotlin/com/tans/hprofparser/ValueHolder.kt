@@ -7,7 +7,6 @@ sealed class ValueHolder {
         val value: Long,
         override val size: Int
     ) : ValueHolder() {
-
         val isNull
             get() = value == NULL_REFERENCE
 
@@ -16,6 +15,26 @@ sealed class ValueHolder {
                 null
             } else {
                 instanceDic[value]
+            }
+        }
+
+        fun readRefInstanceAsString(instanceDic: Map<Long, Instance>): String? {
+            val instance = getRefInstance(instanceDic)
+            return if (instance is Instance.ObjectInstance) {
+                instance.getMemberField("value")?.value?.let { valueHolder ->
+                    if (valueHolder is ReferenceHolder) {
+                        val bytesArrayInstance = valueHolder.getRefInstance(instanceDic)
+                        if (bytesArrayInstance is Instance.ByteArrayInstance) {
+                            bytesArrayInstance.array.toString(Charsets.UTF_8)
+                        } else {
+                            null
+                        }
+                    } else {
+                        null
+                    }
+                }
+            } else {
+                null
             }
         }
     }

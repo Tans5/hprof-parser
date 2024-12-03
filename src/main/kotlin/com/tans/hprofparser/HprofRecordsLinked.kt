@@ -14,7 +14,9 @@ data class HprofRecordsLinked(
     val rootsDic: Map<Long, HprofRecord>,
     val instancesDic: Map<Long, Instance>,
     val clazzNameObjectInstanceDic: Map<String, List<Instance.ObjectInstance>>,
-    val heapDumpInfoDic: Map<Long, HeapDumpInfo>
+    val heapDumpInfoDic: Map<Long, HeapDumpInfo>,
+    val heapDumpSubRecords: Map<Class<*>, List<HprofRecord>>,
+    val threadSerialNumberDic: Map<Int, ActiveThread>
 ) {
 
     fun queryString(id: Long): HprofRecord.StringRecord? = stringsDic[id]
@@ -34,6 +36,8 @@ data class HprofRecordsLinked(
     fun queryObjectInstanceByClazzName(clazzName: String): List<Instance.ObjectInstance>? = clazzNameObjectInstanceDic[clazzName]
 
     fun queryHeapDumpInfo(id: Long): HeapDumpInfo? = heapDumpInfoDic[id]
+
+    fun queryThreadBySerialNumber(serialNumber: Int): ActiveThread? = threadSerialNumberDic[serialNumber]
 }
 
 @Suppress("UNCHECKED_CAST")
@@ -319,6 +323,26 @@ fun linkRecords(records: Map<Class<*>, List<HprofRecord>>, header: HprofHeader):
         }
     }
 
+    // Find threads
+    val threadSerialNumberDic = HashMap<Int, ActiveThread>()
+    val rootThreadObjectRecords = (heapDumpSubRecords[HprofRecord.RootThreadObjectRecord::class.java] ?: emptyList()) as List<HprofRecord.RootThreadObjectRecord>
+    for (r in rootThreadObjectRecords) {
+        val i = instanceDic[r.id]
+        if (i != null && i is Instance.ObjectInstance) {
+            val value = i.getMemberField("name")?.value as? ValueHolder.ReferenceHolder
+            if (value != null) {
+                val threadName = value.readRefInstanceAsString(instanceDic)
+                val t = ActiveThread(
+                    id = r.id,
+                    threadSerialNumber = r.threadSerialNumber,
+                    frameNumber = r.frameNumber,
+                    threadName = threadName
+                )
+                threadSerialNumberDic[t.threadSerialNumber] = t
+            }
+        }
+    }
+
     return HprofRecordsLinked(
         stringsDic = stringsDic,
         loadedClassesDic = loadedClassesDic,
@@ -328,6 +352,8 @@ fun linkRecords(records: Map<Class<*>, List<HprofRecord>>, header: HprofHeader):
         rootsDic = rootsDic,
         instancesDic = instanceDic,
         clazzNameObjectInstanceDic = clazzNameObjectInstanceDic,
-        heapDumpInfoDic = heapDumpInfoDic
+        heapDumpInfoDic = heapDumpInfoDic,
+        heapDumpSubRecords = heapDumpSubRecords,
+        threadSerialNumberDic = threadSerialNumberDic
     )
 }

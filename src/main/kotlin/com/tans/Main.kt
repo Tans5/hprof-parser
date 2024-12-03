@@ -10,14 +10,22 @@ fun main() {
     LocalFileLogPrinter(File("./log.txt")).use { logPrinter ->
         val hprof = hprofParse("./dump.hprof")
         val linked = hprof.recordsLinked
+
+        logPrinter.printLine("Thread(${linked.threadSerialNumberDic.size} threads): ")
+        for ((_, r) in linked.threadSerialNumberDic) {
+            logPrinter.printLine(" Name=${r.threadName}, SerialNumber=${r.threadSerialNumber}, InstanceId=${r.id}, FrameNumber=${r.frameNumber}")
+        }
+
+        logPrinter.printLine("")
         logPrinter.printLine("LoadedClasses(${linked.loadedClassesDic.size} classes): ")
         for ((_, c) in linked.loadedClassesDic.toList().take(500)) {
-            logPrinter.printLine("   ${c.className}")
+            logPrinter.printLine(" ${c.className}")
         }
+
         logPrinter.printLine("")
         logPrinter.printLine("ObjectInstance(${linked.clazzNameObjectInstanceDic.size} classes): ")
         for ((clazzName, instances) in linked.clazzNameObjectInstanceDic.toList().sortedByDescending { it.second.size }.take(500)) {
-            logPrinter.printLine("   $clazzName: ${instances.size} instances.")
+            logPrinter.printLine(" $clazzName: ${instances.size} instances.")
         }
 
         val stringInstance = linked.queryObjectInstanceByClazzName("java.util.ArrayList")?.getOrNull(2)

@@ -15,7 +15,12 @@ sealed class Instance {
         val clazz: LoadedClass?,
         val value: ByteArray,
         val memberFields: List<MemberFieldAndValue>
-    ) : Instance()
+    ) : Instance() {
+
+        fun getMemberField(fieldName: String): MemberFieldAndValue? {
+          return memberFields.find { it.field.nameString == fieldName }
+        }
+    }
 
     data class BoolArrayInstance(
         override val id: Long,
