@@ -1,9 +1,8 @@
 package com.tans.hprofparser
 
-data class ActiveThread(
+data class ActiveThreadStackFrame(
     val id: Long,
     val threadSerialNumber: Int,
     val frameNumber: Int,
-    val threadName: String?,
-    val frames: List<ActiveThreadStackFrame>
+    val refInstance: Instance?
 )

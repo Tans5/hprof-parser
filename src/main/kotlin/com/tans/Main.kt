@@ -14,6 +14,26 @@ fun main() {
         logPrinter.printLine("Thread(${linked.threadSerialNumberDic.size} threads): ")
         for ((_, r) in linked.threadSerialNumberDic) {
             logPrinter.printLine(" Name=${r.threadName}, SerialNumber=${r.threadSerialNumber}, InstanceId=${r.id}, FrameNumber=${r.frameNumber}")
+            for (f in r.frames) {
+                logPrinter.printLine(
+                    "  FrameId=${f.id}, FrameInstanceClass=${
+                        when (f.refInstance) {
+                            is Instance.BoolArrayInstance -> "BoolArray"
+                            is Instance.ByteArrayInstance -> "ByteArray"
+                            is Instance.CharArrayInstance -> "CharArray"
+                            is Instance.ClassDumpInstance -> f.refInstance.clazz?.className
+                            is Instance.DoubleArrayInstance -> "DoubleArray"
+                            is Instance.FloatArrayInstance -> "FloatArray"
+                            is Instance.IntArrayInstance -> "IntArray"
+                            is Instance.LongArrayInstance -> "LongArray"
+                            is Instance.ObjectArrayInstance -> "ObjectArray(${f.refInstance.arrayClass?.className})"
+                            is Instance.ObjectInstance -> f.refInstance.clazz?.className
+                            is Instance.ShortArrayInstance -> "ShortArray"
+                            null -> null
+                        }
+                    }"
+                )
+            }
         }
 
         logPrinter.printLine("")

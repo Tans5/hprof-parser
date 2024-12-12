@@ -325,7 +325,16 @@ fun linkRecords(records: Map<Class<*>, List<HprofRecord>>, header: HprofHeader):
 
     // Thread frames record
     val rootFramesRecords = (heapDumpSubRecords[HprofRecord.RootJavaFrameRecord::class.java] ?: emptyList()) as List<HprofRecord.RootJavaFrameRecord>
-    val threadSerialNumberFrameDic = rootFramesRecords.groupBy { it.threadSerialNumber }
+    val threadSerialNumberFrameDic: Map<Int, List<ActiveThreadStackFrame>> = rootFramesRecords
+        .map {
+            ActiveThreadStackFrame(
+                id = it.id,
+                threadSerialNumber = it.threadSerialNumber,
+                frameNumber = it.frameNumber,
+                refInstance = instanceDic[it.id]
+            )
+        }
+        .groupBy { it.threadSerialNumber }
 
     // Find threads
     val threadSerialNumberDic = HashMap<Int, ActiveThread>()
