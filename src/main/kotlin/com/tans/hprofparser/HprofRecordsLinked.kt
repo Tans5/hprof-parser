@@ -16,7 +16,8 @@ data class HprofRecordsLinked(
     val clazzNameObjectInstanceDic: Map<String, List<Instance.ObjectInstance>>,
     val heapDumpInfoDic: Map<Long, HeapDumpInfo>,
     val heapDumpSubRecords: Map<Class<*>, List<HprofRecord>>,
-    val threadSerialNumberDic: Map<Int, ActiveThread>
+    val threadSerialNumberDic: Map<Int, ActiveThread>,
+    val threadDic: Map<Long, ActiveThread>
 ) {
 
     fun queryString(id: Long): HprofRecord.StringRecord? = stringsDic[id]
@@ -38,6 +39,10 @@ data class HprofRecordsLinked(
     fun queryHeapDumpInfo(id: Long): HeapDumpInfo? = heapDumpInfoDic[id]
 
     fun queryThreadBySerialNumber(serialNumber: Int): ActiveThread? = threadSerialNumberDic[serialNumber]
+
+    fun queryThread(id: Long): ActiveThread? = threadDic[id]
+
+    fun isThreadInstance(id: Long): Boolean = threadDic.containsKey(id)
 }
 
 @Suppress("UNCHECKED_CAST")
@@ -338,6 +343,7 @@ fun linkRecords(records: Map<Class<*>, List<HprofRecord>>, header: HprofHeader):
 
     // Find threads
     val threadSerialNumberDic = HashMap<Int, ActiveThread>()
+    val threadDic = HashMap<Long, ActiveThread>()
     val rootThreadObjectRecords = (heapDumpSubRecords[HprofRecord.RootThreadObjectRecord::class.java] ?: emptyList()) as List<HprofRecord.RootThreadObjectRecord>
     for (r in rootThreadObjectRecords) {
         val i = instanceDic[r.id]
@@ -353,6 +359,7 @@ fun linkRecords(records: Map<Class<*>, List<HprofRecord>>, header: HprofHeader):
                     frames = threadSerialNumberFrameDic[r.threadSerialNumber] ?: emptyList()
                 )
                 threadSerialNumberDic[t.threadSerialNumber] = t
+                threadDic[t.id] = t
             }
         }
     }
@@ -368,6 +375,7 @@ fun linkRecords(records: Map<Class<*>, List<HprofRecord>>, header: HprofHeader):
         clazzNameObjectInstanceDic = clazzNameObjectInstanceDic,
         heapDumpInfoDic = heapDumpInfoDic,
         heapDumpSubRecords = heapDumpSubRecords,
-        threadSerialNumberDic = threadSerialNumberDic
+        threadSerialNumberDic = threadSerialNumberDic,
+        threadDic = threadDic
     )
 }

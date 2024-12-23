@@ -10,7 +10,7 @@ sealed class ValueHolder {
         val isNull
             get() = value == NULL_REFERENCE
 
-        fun getRefInstance(instanceDic: Map<Long, Instance>): Instance? {
+        fun readRefInstance(instanceDic: Map<Long, Instance>): Instance? {
             return if (isNull) {
                 null
             } else {
@@ -19,11 +19,11 @@ sealed class ValueHolder {
         }
 
         fun readRefInstanceAsString(instanceDic: Map<Long, Instance>): String? {
-            val instance = getRefInstance(instanceDic)
+            val instance = readRefInstance(instanceDic)
             return if (instance is Instance.ObjectInstance) {
                 instance.getMemberField("value")?.value?.let { valueHolder ->
                     if (valueHolder is ReferenceHolder) {
-                        val bytesArrayInstance = valueHolder.getRefInstance(instanceDic)
+                        val bytesArrayInstance = valueHolder.readRefInstance(instanceDic)
                         if (bytesArrayInstance is Instance.ByteArrayInstance) {
                             bytesArrayInstance.array.toString(Charsets.UTF_8)
                         } else {
@@ -47,7 +47,6 @@ sealed class ValueHolder {
     data class ShortHolder(val value: Short, override val size: Int = PrimitiveType.SHORT.byteSize) : ValueHolder()
     data class IntHolder(val value: Int, override val size: Int = PrimitiveType.INT.byteSize) : ValueHolder()
     data class LongHolder(val value: Long, override val size: Int = PrimitiveType.LONG.byteSize) : ValueHolder()
-
 
     companion object {
         const val NULL_REFERENCE = 0L

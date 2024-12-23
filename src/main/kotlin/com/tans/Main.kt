@@ -101,7 +101,7 @@ fun main() {
                                 }
                                 is ValueHolder.ReferenceHolder -> {
                                     outputLine.append("Type=Reference, Value=${vh.value}")
-                                    val i = vh.getRefInstance(linked.instancesDic)
+                                    val i = vh.readRefInstance(linked.instancesDic)
                                     if (i != null && (i is Instance.ClassDumpInstance || !route.contains(i.id))) {
                                         generateInstanceLine(i, outputLine, depth + 2, route)
                                     }

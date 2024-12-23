@@ -9,7 +9,8 @@ import kotlin.jvm.Throws
 data class Hprof(
     val header: HprofHeader,
     val records: Map<Class<out HprofRecord>, List<HprofRecord>>,
-    val recordsLinked: HprofRecordsLinked
+    val recordsLinked: HprofRecordsLinked,
+    val refTree: RefTree
 )
 
 
@@ -23,9 +24,11 @@ fun hprofParse(filePath: String): Hprof {
         header to records
     }
     val linked = linkRecords(records as Map<Class<*>, List<HprofRecord>>, header)
+    val refTree = createGcRootRefGraph(linked)
     return Hprof(
         header = header,
         records = records,
-        recordsLinked = linked
+        recordsLinked = linked,
+        refTree = refTree
     )
 }
