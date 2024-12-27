@@ -229,6 +229,14 @@ sealed class HprofRecord {
         override val bodyLength: Long
     ) : HprofRecord()
 
+    data class PrimitiveArrayNoDataRecord(
+        val id: Long,
+        val stackTraceSerialNumber: Int,
+        val arrayLength: Int,
+        val arrayType: Int,
+        override val bodyLength: Long,
+    ) : HprofRecord()
+
     data class HeapDumpInfoRecord(
         val heapId: Long,
         val stringId: Long,

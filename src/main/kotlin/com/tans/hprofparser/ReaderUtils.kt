@@ -516,6 +516,18 @@ fun BufferedSource.readPrimitiveArrayDumpRecord(
     return r
 }
 
+fun BufferedSource.readPrimitiveArrayNoDataRecord(
+    header: HprofHeader
+): HprofRecord {
+    return HprofRecord.PrimitiveArrayNoDataRecord(
+        id = readId(header.identifierByteSize),
+        stackTraceSerialNumber = readInt(),
+        arrayLength = readInt(),
+        arrayType = readUnsignedByte(),
+        bodyLength = (header.identifierByteSize + 4 + 4 + 1).toLong()
+    )
+}
+
 fun BufferedSource.readHeapDumpInfoRecord(
     header: HprofHeader
 ): HprofRecord.HeapDumpInfoRecord {
@@ -646,7 +658,7 @@ fun BufferedSource.readHeapDumpRecord(
                     }
 
                     HprofRecordTag.PRIMITIVE_ARRAY_NODATA.tag -> {
-                        throw IOException("Not support PRIMITIVE_ARRAY_NODATA")
+                        subRecords.add(readPrimitiveArrayNoDataRecord(header))
                     }
 
                     /**
